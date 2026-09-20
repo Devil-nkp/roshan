@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200">
+<defs>
+  <radialGradient id="g" cx="70%" cy="18%" r="85%">
+    <stop offset="0" stop-color="#2456b6" stop-opacity=".62"/>
+    <stop offset=".38" stop-color="#121821"/>
+    <stop offset="1" stop-color="#060708"/>
+  </radialGradient>
+  <filter id="blur"><feGaussianBlur stdDeviation="28"/></filter>
+</defs>
+<rect width="100%" height="100%" fill="url(#g)"/>
+<circle cx="303" cy="537" r="168" fill="#2f68ff" opacity=".14" filter="url(#blur)"/>
+<path d="M0 840 L900 576 L900 1200 L0 1200Z" fill="#020304" opacity=".55"/>
+<rect x="44" y="44" width="812" height="1112" fill="none" stroke="#eff5ff" stroke-opacity=".12"/>
+<path d="M44 120H210 M44 120V44 M856 1080H690 M856 1080V1156" stroke="#79a5ff" stroke-width="3" opacity=".55"/>
+<text x="64" y="1075" font-family="Arial, sans-serif" font-size="50" font-weight="700" fill="#f4f7fb" letter-spacing="4">MEMORY 01</text>
+<text x="66" y="1120" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#9dbbff" letter-spacing="5">REPLACE WITH FRIENDSHIP PHOTO</text>
+<text x="838" y="90" text-anchor="end" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#aab4c0" letter-spacing="4">PR / 021</text>
+</svg>
