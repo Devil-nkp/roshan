@@ -9,6 +9,7 @@
   <meta name="description" content="Parvesh Roshan — One of One. A cinematic birthday experience.">
   <title>PARVESH ROSHAN — ONE OF ONE</title>
 
+  <link rel="preload" as="image" href="./assets/runway-fashion-week.jpeg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -23,7 +24,8 @@
 
   <!-- ================= START ================= -->
   <section class="intro fullscreen-image motion-scene" id="intro" data-track="aura" data-motion="hero">
-    <img class="intro__bg" src="./assets/hero.svg" alt="" aria-hidden="true">
+    <img class="intro__bg" src="./assets/editorial-urban-collection.jpeg" alt="" aria-hidden="true" fetchpriority="high"
+      decoding="async">
     <div class="intro__bgShade" aria-hidden="true"></div>
 
     <div class="intro__light intro__light--one" aria-hidden="true"></div>
@@ -38,7 +40,8 @@
     <div class="intro__word intro__word--back">PARVESH</div>
 
     <figure class="intro__fullPerson" aria-label="Parvesh Roshan">
-      <img src="./assets/hero.svg" alt="Parvesh Roshan full photo">
+      <img src="./assets/editorial-urban-collection.jpeg" alt="Parvesh Roshan full-body hero photo" fetchpriority="high"
+        decoding="async">
       <div class="intro__personEdge" aria-hidden="true"></div>
     </figure>
 
@@ -96,7 +99,8 @@
 
     <!-- ================= AURA FULLSCREEN ================= -->
     <section class="scene aura fullscreen-image motion-scene" id="aura" data-track="rolex" data-motion="scanner">
-      <img class="fullscreen-image__media" src="./assets/solo-01.svg" alt="Parvesh Roshan portrait">
+      <img class="fullscreen-image__media" src="./assets/editorial-monochrome.jpeg" alt="Parvesh Roshan portrait"
+        loading="lazy" decoding="async">
       <div class="fullscreen-image__shade aura__shade"></div>
       <span class="scene__index scene__index--light">02 / AURA</span>
 
@@ -145,7 +149,8 @@
       </div>
 
       <article class="frame fullscreen-image motion-panel" data-panel-motion="pan-left">
-        <img class="fullscreen-image__media" src="./assets/solo-01.svg" alt="Parvesh portrait 1">
+        <img class="fullscreen-image__media" src="./assets/commercial-watch-campaign.jpeg"
+          alt="Parvesh Roshan watch campaign portrait" loading="lazy" decoding="async">
         <div class="fullscreen-image__shade"></div>
         <div class="frame__overlay">
           <span>01 / THE LOOK</span>
@@ -155,7 +160,8 @@
       </article>
 
       <article class="frame fullscreen-image motion-panel" data-panel-motion="zoom-in">
-        <img class="fullscreen-image__media" src="./assets/solo-02.svg" alt="Parvesh portrait 2">
+        <img class="fullscreen-image__media" src="./assets/editorial-street-style.jpeg" alt="Parvesh portrait 2"
+          loading="lazy" decoding="async">
         <div class="fullscreen-image__shade"></div>
         <div class="frame__overlay frame__overlay--right">
           <span>02 / THE WALK</span>
@@ -165,7 +171,8 @@
       </article>
 
       <article class="frame fullscreen-image motion-panel" data-panel-motion="pan-right">
-        <img class="fullscreen-image__media" src="./assets/solo-03.svg" alt="Parvesh portrait 3">
+        <img class="fullscreen-image__media" src="./assets/fashion-black-white.jpeg"
+          alt="Parvesh Roshan black and white fashion portrait" loading="lazy" decoding="async">
         <div class="fullscreen-image__shade"></div>
         <div class="frame__overlay">
           <span>03 / THE SILENCE</span>
@@ -175,7 +182,8 @@
       </article>
 
       <article class="frame fullscreen-image motion-panel" data-panel-motion="tilt-in">
-        <img class="fullscreen-image__media" src="./assets/solo-04.svg" alt="Parvesh portrait 4">
+        <img class="fullscreen-image__media" src="./assets/runway-designer-show.jpeg" alt="Parvesh portrait 4"
+          loading="lazy" decoding="async">
         <div class="fullscreen-image__shade"></div>
         <div class="frame__overlay frame__overlay--right">
           <span>04 / THE FRAME</span>
@@ -185,7 +193,8 @@
       </article>
 
       <article class="frame fullscreen-image motion-panel" data-panel-motion="zoom-out">
-        <img class="fullscreen-image__media" src="./assets/solo-05.svg" alt="Parvesh portrait 5">
+        <img class="fullscreen-image__media" src="./assets/fashion-avant-garde.jpeg" alt="Parvesh portrait 5"
+          loading="lazy" decoding="async">
         <div class="fullscreen-image__shade"></div>
         <div class="frame__overlay">
           <span>05 / THE ENERGY</span>
@@ -198,7 +207,8 @@
     <!-- ================= CLASSIFIED FULLSCREEN BACKDROP ================= -->
     <section class="scene classified fullscreen-image motion-scene" id="classified" data-track="lokiverse"
       data-motion="dossier">
-      <img class="fullscreen-image__media" src="./assets/solo-03.svg" alt="Parvesh classified image">
+      <img class="fullscreen-image__media" src="./assets/about-portrait.jpeg"
+        alt="Parvesh Roshan classified profile portrait" loading="lazy" decoding="async">
       <div class="fullscreen-image__shade classified__shade"></div>
       <span class="scene__index scene__index--light">04 / PR-001</span>
 
@@ -250,43 +260,43 @@
       </div>
 
       <figure class="memory fullscreen-image motion-panel" data-panel-motion="memory-left">
-        <img class="fullscreen-image__media" src="./assets/memory-01.svg" alt="Friendship memory 1" loading="lazy"
-          decoding="async">
+        <img class="fullscreen-image__media lb-trigger" src="./assets/friend1.jpeg" alt="Friend memory 1"
+          loading="lazy" decoding="async">
         <div class="fullscreen-image__shade"></div>
         <figcaption><b>001</b><span>WHERE IT STARTED</span></figcaption>
       </figure>
 
       <figure class="memory fullscreen-image motion-panel" data-panel-motion="memory-right">
-        <img class="fullscreen-image__media" src="./assets/memory-02.svg" alt="Friendship memory 2" loading="lazy"
-          decoding="async">
+        <img class="fullscreen-image__media lb-trigger" src="./assets/friend2.jpeg" alt="Friend memory 2"
+          loading="lazy" decoding="async">
         <div class="fullscreen-image__shade"></div>
         <figcaption><b>002</b><span>NO PLAN. GREAT DAY.</span></figcaption>
       </figure>
 
       <figure class="memory fullscreen-image motion-panel" data-panel-motion="memory-rise">
-        <img class="fullscreen-image__media" src="./assets/memory-03.svg" alt="Friendship memory 3" loading="lazy"
-          decoding="async">
+        <img class="fullscreen-image__media lb-trigger" src="./assets/friend3.jpeg" alt="Friend memory 3"
+          loading="lazy" decoding="async">
         <div class="fullscreen-image__shade"></div>
         <figcaption><b>003</b><span>PEAK STUPIDITY</span></figcaption>
       </figure>
 
       <figure class="memory fullscreen-image motion-panel" data-panel-motion="memory-left">
-        <img class="fullscreen-image__media" src="./assets/memory-04.svg" alt="Friendship memory 4" loading="lazy"
-          decoding="async">
+        <img class="fullscreen-image__media lb-trigger" src="./assets/friend4.jpeg" alt="Friend memory 4"
+          loading="lazy" decoding="async">
         <div class="fullscreen-image__shade"></div>
         <figcaption><b>004</b><span>STILL ONE OF THE BEST</span></figcaption>
       </figure>
 
       <figure class="memory fullscreen-image motion-panel" data-panel-motion="memory-right">
-        <img class="fullscreen-image__media" src="./assets/memory-05.svg" alt="Friendship memory 5" loading="lazy"
-          decoding="async">
+        <img class="fullscreen-image__media lb-trigger" src="./assets/friend5.jpeg" alt="Friend memory 5"
+          loading="lazy" decoding="async">
         <div class="fullscreen-image__shade"></div>
         <figcaption><b>005</b><span>NO CONTEXT NEEDED</span></figcaption>
       </figure>
 
       <figure class="memory fullscreen-image motion-panel" data-panel-motion="memory-rise">
-        <img class="fullscreen-image__media" src="./assets/memory-06.svg" alt="Friendship memory 6" loading="lazy"
-          decoding="async">
+        <img class="fullscreen-image__media lb-trigger" src="./assets/friend6.jpeg" alt="Friend memory 6"
+          loading="lazy" decoding="async">
         <div class="fullscreen-image__shade"></div>
         <figcaption><b>006</b><span>OUR KIND OF NORMAL</span></figcaption>
       </figure>
@@ -406,7 +416,8 @@
 
     <!-- ================= VAULT ================= -->
     <section class="scene vault fullscreen-image motion-scene" id="vault" data-track="revenge" data-motion="vault">
-      <img class="fullscreen-image__media" src="./assets/memory-05.svg" alt="Private vault background">
+      <img class="fullscreen-image__media" src="./assets/fashion-minimalist.jpeg"
+        alt="Parvesh Roshan private vault background" loading="lazy" decoding="async">
       <div class="fullscreen-image__shade vault__shade"></div>
       <span class="scene__index scene__index--light">11 / THE VAULT</span>
 
@@ -439,17 +450,20 @@
 
         <div class="vaultSlides">
           <figure class="vaultSlide fullscreen-image">
-            <img class="fullscreen-image__media" src="./assets/memory-01.svg" alt="Vault memory 1">
+            <img class="fullscreen-image__media" src="./assets/editorial-coastal.jpeg"
+              alt="Private Parvesh memory — coastal" loading="lazy" decoding="async">
             <div class="fullscreen-image__shade"></div>
             <figcaption>PRIVATE MEMORY 01</figcaption>
           </figure>
           <figure class="vaultSlide fullscreen-image">
-            <img class="fullscreen-image__media" src="./assets/memory-03.svg" alt="Vault memory 2">
+            <img class="fullscreen-image__media" src="./assets/commercial-denim-vibes.jpeg"
+              alt="Private Parvesh memory — denim" loading="lazy" decoding="async">
             <div class="fullscreen-image__shade"></div>
             <figcaption>PRIVATE MEMORY 02</figcaption>
           </figure>
           <figure class="vaultSlide fullscreen-image">
-            <img class="fullscreen-image__media" src="./assets/memory-06.svg" alt="Vault memory 3">
+            <img class="fullscreen-image__media" src="./assets/editorial-urban-collection.jpeg"
+              alt="Private Parvesh memory — urban" loading="lazy" decoding="async">
             <div class="fullscreen-image__shade"></div>
             <figcaption>PRIVATE MEMORY 03</figcaption>
           </figure>
@@ -459,7 +473,8 @@
 
     <!-- ================= BIRTHDAY REVEAL ================= -->
     <section class="scene reveal fullscreen-image motion-scene" id="reveal" data-track="hukum" data-motion="reveal">
-      <img class="fullscreen-image__media" src="./assets/hero.svg" alt="Parvesh Roshan final birthday portrait">
+      <img class="fullscreen-image__media" src="./assets/fashion-formal-edit.jpeg"
+        alt="Parvesh Roshan formal birthday portrait" loading="eager" decoding="async">
       <div class="fullscreen-image__shade reveal__shade"></div>
       <span class="scene__index scene__index--light">12 / HIS DAY</span>
 
@@ -498,7 +513,8 @@
 
     <!-- ================= ENDING FULLSCREEN ================= -->
     <footer class="ending fullscreen-image motion-scene" id="ending" data-track="mustafa" data-motion="ending">
-      <img class="fullscreen-image__media" src="./assets/memory-01.svg" alt="Final friendship photo">
+      <img class="fullscreen-image__media" src="./assets/runway-closing-act.jpeg"
+        alt="Parvesh Roshan final closing frame" loading="lazy" decoding="async">
       <div class="fullscreen-image__shade ending__shade"></div>
 
       <div class="ending__copy">
@@ -538,6 +554,17 @@
 
   <a id="youtubeLink" href="https://www.youtube.com/watch?v=XSTTBVFiObg" target="_blank" rel="noopener" hidden>Open
     current song on YouTube</a>
+
+  <!-- ================= LIGHTBOX ================= -->
+  <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Full size image" hidden>
+    <button class="lightbox__close" id="lbClose" aria-label="Close">&times;</button>
+    <button class="lightbox__nav lightbox__nav--prev" id="lbPrev" aria-label="Previous image">&#8249;</button>
+    <div class="lightbox__stage">
+      <img id="lbImg" src="" alt="" class="lightbox__img">
+    </div>
+    <button class="lightbox__nav lightbox__nav--next" id="lbNext" aria-label="Next image">&#8250;</button>
+    <div class="lightbox__caption" id="lbCaption"></div>
+  </div>
 
   <script src="./app.js"></script>
 </body>
