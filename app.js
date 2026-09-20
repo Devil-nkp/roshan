@@ -1,9 +1,12 @@
 /* =========================================================
-   PARVESH ROSHAN — FINAL MOTION BUILD
-   - Audio-only YouTube engine
-   - Current section song loops continuously
-   - Song switches only when viewport center enters a new scene
-   - Unique motion activation for every scene
+   PARVESH ROSHAN — RELIABLE SECTION SOUNDTRACK BUILD
+
+   IMPORTANT FIX:
+   - The section at the center of the viewport owns the song.
+   - We verify the ACTUAL YouTube video_id, not only our JS state.
+   - The old song is explicitly stopped before a new track loads.
+   - A watchdog corrects the player if YouTube fails to switch.
+   - Each active section track loops until another section takes over.
    ========================================================= */
 
 const $ = (s, p = document) => p.querySelector(s);
@@ -14,6 +17,7 @@ const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 /* =========================================================
    TRACK MAP
    ========================================================= */
+
 const TRACKS = {
   aura: {
     title: "Aura 10/10",
@@ -22,6 +26,7 @@ const TRACKS = {
     url: "https://www.youtube.com/watch?v=XSTTBVFiObg",
     volume: 42
   },
+
   hukum: {
     title: "Hukum – Thalaivar Alappara",
     artist: "Anirudh Ravichander",
@@ -29,6 +34,7 @@ const TRACKS = {
     url: "https://www.youtube.com/watch?v=gB2zKZxESTg",
     volume: 44
   },
+
   rolex: {
     title: "Rolex Theme",
     artist: "Anirudh Ravichander",
@@ -36,6 +42,7 @@ const TRACKS = {
     url: "https://www.youtube.com/watch?v=rBLCjz8as0E",
     volume: 42
   },
+
   ordinary: {
     title: "Ordinary Person",
     artist: "Anirudh Ravichander & Nikhita Gandhi",
@@ -43,6 +50,7 @@ const TRACKS = {
     url: "https://www.youtube.com/watch?v=326UBY4B-ZU",
     volume: 36
   },
+
   lokiverse: {
     title: "Lokiverse 2.0",
     artist: "Anirudh Ravichander",
@@ -50,6 +58,7 @@ const TRACKS = {
     url: "https://www.youtube.com/watch?v=QuIR-9RNYbA",
     volume: 40
   },
+
   life: {
     title: "The Life of Ram",
     artist: "Pradeep Kumar / Govind Vasantha",
@@ -57,6 +66,7 @@ const TRACKS = {
     url: "https://www.youtube.com/watch?v=6LD30ChPsSs",
     volume: 25
   },
+
   mustafa: {
     title: "Mustafa Mustafa",
     artist: "A.R. Rahman",
@@ -64,6 +74,7 @@ const TRACKS = {
     url: "https://www.youtube.com/watch?v=Fhgpf2ikOWY",
     volume: 30
   },
+
   godmode: {
     title: "God Mode",
     artist: "Sai Abhyankkar & Gana Muthu",
@@ -71,6 +82,7 @@ const TRACKS = {
     url: "https://www.youtube.com/watch?v=_Vp-jCG7gno",
     volume: 40
   },
+
   revenge: {
     title: "Raga of Revenge",
     artist: "Anirudh Ravichander",
@@ -78,6 +90,7 @@ const TRACKS = {
     url: "https://www.youtube.com/watch?v=NAkQVL61BRI",
     volume: 37
   },
+
   quiet: {
     title: "Message From Me",
     artist: "Voice note / quiet section",
@@ -88,22 +101,29 @@ const TRACKS = {
 };
 
 /* =========================================================
-   YOUTUBE ENGINE
+   PLAYER STATE
    ========================================================= */
 
 let ytPlayer = null;
 let ytReady = false;
-let experienceStarted = false;
-let isPaused = false;
-let currentTrackKey = null;
-let activeScene = null;
-let requestedTrackKey = "aura";
 let apiLoaded = false;
-let preEntryMutedPlayback = false;
-let firstSoundGestureUsed = false;
-let currentVideoId = TRACKS.aura.videoId;
-let trackSwitchSerial = 0;
-let sceneObserver = null;
+
+let experienceStarted = false;
+let userInteracted = false;
+let soundUnlocked = false;
+let isPaused = false;
+
+let activeScene = $("#intro");
+let desiredTrackKey = "aura";
+let currentTrackKey = "aura";
+let actualVideoId = null;
+
+let switchGeneration = 0;
+let lastLoadAttempt = 0;
+let soundtrackWatchdog = 0;
+let scrollTicking = false;
+
+const blockedVideoIds = new Set();
 
 const musicDock = $("#musicDock");
 const musicTitle = $("#musicTitle");
@@ -113,51 +133,99 @@ const youtubeLink = $("#youtubeLink");
 const musicToggle = $("#musicToggle");
 const enterBtn = $("#enterBtn");
 
+/* =========================================================
+   UI HELPERS
+   ========================================================= */
+
 function setStatus(text){
-  if (musicStatus) musicStatus.textContent = text;
+  if (musicStatus){
+    musicStatus.textContent = text;
+  }
 }
 
 function updateMusicUI(key){
   const track = TRACKS[key];
   if (!track) return;
 
-  if (musicTitle) musicTitle.textContent = track.title;
-  if (musicArtist) musicArtist.textContent = track.artist;
+  if (musicTitle){
+    musicTitle.textContent = track.title;
+  }
+
+  if (musicArtist){
+    musicArtist.textContent = track.artist;
+  }
 
   if (youtubeLink){
     if (track.url){
       youtubeLink.href = track.url;
-    } else {
+    }else{
       youtubeLink.removeAttribute("href");
     }
   }
 }
 
-/**
- * Create the YouTube iframe at a valid size but outside the viewport.
- * Referrer policy is assigned before src to prevent error 153.
- */
+function getPlayerVideoId(){
+  if (!ytReady || !ytPlayer) return null;
+
+  try{
+    const data = ytPlayer.getVideoData?.();
+    return data?.video_id || null;
+  }catch(error){
+    return null;
+  }
+}
+
+function trackKeyFromVideoId(videoId){
+  if (!videoId) return null;
+
+  for (const [key, track] of Object.entries(TRACKS)){
+    if (track.videoId === videoId){
+      return key;
+    }
+  }
+
+  return null;
+}
+
+/* =========================================================
+   YOUTUBE IFRAME
+   ========================================================= */
+
+function normaliseOrigin(raw){
+  try{
+    const url = new URL(raw);
+
+    if (url.hostname === "127.0.0.1"){
+      url.hostname = "localhost";
+    }
+
+    return url.origin;
+  }catch(error){
+    return raw;
+  }
+}
+
 function createIframe(){
   const host = $("#yt-player-host");
-  if (!host || $("#yt-player")) return;
+
+  if (!host || $("#yt-player")){
+    return;
+  }
 
   const iframe = document.createElement("iframe");
+
   iframe.id = "yt-player";
   iframe.width = "220";
   iframe.height = "220";
   iframe.title = "Parvesh Roshan background music";
-  iframe.setAttribute("frameborder", "0");
-  iframe.setAttribute("allow", "autoplay; encrypted-media; picture-in-picture");
-  iframe.referrerPolicy = "strict-origin-when-cross-origin";
 
-  // Always normalise 127.0.0.1 → localhost so YouTube origin validation passes
-  function normaliseOrigin(raw) {
-    try {
-      const u = new URL(raw);
-      if (u.hostname === "127.0.0.1") u.hostname = "localhost";
-      return u.origin;
-    } catch { return raw; }
-  }
+  iframe.setAttribute("frameborder", "0");
+  iframe.setAttribute(
+    "allow",
+    "autoplay; encrypted-media; picture-in-picture"
+  );
+
+  iframe.referrerPolicy = "strict-origin-when-cross-origin";
 
   const pageOrigin = normaliseOrigin(
     location.origin && location.origin !== "null"
@@ -171,17 +239,21 @@ function createIframe(){
       : `${pageOrigin}/`;
 
   const params = new URLSearchParams({
-    enablejsapi:"1",
-    playsinline:"1",
-    controls:"0",
-    autoplay:"1",
-    mute:"1",
-    rel:"0",
-    fs:"0",
-    origin:pageOrigin,
-    widget_referrer:pageUrl
+    enablejsapi: "1",
+    playsinline: "1",
+    controls: "0",
+    autoplay: "1",
+    mute: "1",
+    rel: "0",
+    fs: "0",
+    origin: pageOrigin,
+    widget_referrer: pageUrl
   });
 
+  /*
+    Aura is only the initial pre-entry video.
+    There is deliberately NO playlist= and NO fixed loop= here.
+  */
   iframe.src =
     `https://www.youtube.com/embed/${TRACKS.aura.videoId}?${params.toString()}`;
 
@@ -189,109 +261,152 @@ function createIframe(){
 }
 
 function attachYouTube(){
-  if (ytPlayer || !window.YT || !YT.Player) return;
+  if (ytPlayer || !window.YT || !YT.Player){
+    return;
+  }
 
   const iframe = $("#yt-player");
   if (!iframe) return;
 
   ytPlayer = new YT.Player(iframe, {
-    events:{
-      onReady:()=>{
+    events: {
+      onReady: () => {
         ytReady = true;
 
-        // Start the opening track muted immediately.
-        // Muted autoplay is allowed by modern browsers much more reliably
-        // than audible autoplay.
-        ytPlayer.mute();
-        ytPlayer.setVolume(TRACKS.aura.volume);
+        desiredTrackKey = "aura";
         currentTrackKey = "aura";
-        currentVideoId = TRACKS.aura.videoId;
-        activeScene = $("#intro");
+        actualVideoId = TRACKS.aura.videoId;
+
+        activeScene = $("#intro") || activeScene;
+
         updateMusicUI("aura");
 
         try{
+          ytPlayer.mute();
+          ytPlayer.setVolume(TRACKS.aura.volume);
           ytPlayer.playVideo();
-          preEntryMutedPlayback = true;
-          setStatus("INTRO PLAYING");
-          const state = $("#preSoundState");
-          if (state) state.textContent = "TAP ANYWHERE FOR SOUND";
-        }catch(error){
-          setStatus("READY");
-        }
+        }catch(error){}
 
-        if (experienceStarted){
+        const state = $("#preSoundState");
+
+        if (userInteracted || experienceStarted){
           unlockSound();
-          const scene =
-            sceneAtViewportCenter() ||
-            activeScene ||
-            $("#intro");
 
-          activateScene(scene, true);
+          const scene = getSceneAtViewportCenter();
+
+          if (scene){
+            activateScene(scene, true);
+          }
+        }else{
+          setStatus("INTRO PLAYING");
+
+          if (state){
+            state.textContent = "TAP ANYWHERE FOR SOUND";
+          }
         }
       },
 
-      onStateChange:(event)=>{
+      onStateChange: event => {
         if (!window.YT) return;
 
+        actualVideoId = getPlayerVideoId() || actualVideoId;
+
         if (event.data === YT.PlayerState.PLAYING){
+          const playingKey = trackKeyFromVideoId(actualVideoId);
+
+          if (playingKey){
+            currentTrackKey = playingKey;
+          }
+
+          /*
+            This is the key verification.
+            If YouTube is still playing a different video than the
+            active section requires, immediately correct it.
+          */
+          const wanted = TRACKS[desiredTrackKey];
+
+          if (
+            wanted?.videoId &&
+            actualVideoId !== wanted.videoId &&
+            !blockedVideoIds.has(wanted.videoId)
+          ){
+            setStatus("CORRECTING TRACK…");
+
+            setTimeout(()=>{
+              ensureCorrectTrack(true);
+            }, 120);
+
+            return;
+          }
+
           setStatus("PLAYING");
           musicDock?.classList.remove("paused");
-        }
-
-        if (event.data === YT.PlayerState.PAUSED){
-          if (!isPaused && currentTrackKey !== "quiet"){
-            setStatus("PAUSED");
-          }
         }
 
         if (event.data === YT.PlayerState.BUFFERING){
           setStatus("BUFFERING…");
         }
 
+        if (
+          event.data === YT.PlayerState.PAUSED &&
+          !isPaused &&
+          desiredTrackKey !== "quiet"
+        ){
+          setStatus("PAUSED");
+        }
+
         /*
-          LOOP CURRENT SCENE TRACK ONLY.
-          The iframe no longer has a fixed Aura playlist.
+          Loop only the song that actually belongs to the active section.
         */
         if (
           event.data === YT.PlayerState.ENDED &&
           experienceStarted &&
           !isPaused &&
-          currentTrackKey &&
-          currentTrackKey !== "quiet"
+          desiredTrackKey !== "quiet"
         ){
-          const track = TRACKS[currentTrackKey];
+          const wanted = TRACKS[desiredTrackKey];
 
-          if (track?.videoId){
-            currentVideoId = track.videoId;
+          if (!wanted?.videoId) return;
 
-            ytPlayer.loadVideoById({
-              videoId: track.videoId,
-              startSeconds: 0
-            });
+          if (actualVideoId === wanted.videoId){
+            try{
+              ytPlayer.seekTo(0, true);
 
-            if (firstSoundGestureUsed){
-              try{ ytPlayer.unMute(); }catch(e){}
-            }
+              if (soundUnlocked){
+                ytPlayer.unMute();
+              }
 
-            ytPlayer.setVolume(track.volume);
-            ytPlayer.playVideo();
-            setStatus("LOOPING");
+              ytPlayer.setVolume(wanted.volume);
+              ytPlayer.playVideo();
+              setStatus("LOOPING");
+            }catch(error){}
+          }else{
+            ensureCorrectTrack(true);
           }
         }
       },
 
-      onError:(event)=>{
+      onError: event => {
         const code = Number(event.data);
+        const wanted = TRACKS[desiredTrackKey];
 
-        if (code === 153){
+        /*
+          Never allow a failed new track to leave the OLD song playing.
+        */
+        try{
+          ytPlayer.stopVideo();
+        }catch(error){}
+
+        if (wanted?.videoId){
+          blockedVideoIds.add(wanted.videoId);
+        }
+
+        if (code === 101 || code === 150){
+          setStatus("TRACK EMBED BLOCKED");
+        }else if (code === 153){
           setStatus("REFERRER BLOCKED");
-          showMusicFallback();
-        } else if (code === 101 || code === 150){
-          setStatus("EMBED BLOCKED");
-          showMusicFallback();
-        } else {
-          setStatus(`YT ERR ${code}`);
-          showMusicFallback();
+        }else{
+          setStatus(`YT ERROR ${code}`);
         }
       }
     }
@@ -300,8 +415,8 @@ function attachYouTube(){
 
 function loadYouTubeAPI(){
   if (apiLoaded) return;
-  apiLoaded = true;
 
+  apiLoaded = true;
   createIframe();
 
   if (window.YT && window.YT.Player){
@@ -312,204 +427,58 @@ function loadYouTubeAPI(){
   window.onYouTubeIframeAPIReady = attachYouTube;
 
   const script = document.createElement("script");
+
   script.src = "https://www.youtube.com/iframe_api";
   script.async = true;
   script.dataset.youtubeApi = "true";
 
-  // If the API script fails to load (network block, ad blocker), show fallback
   script.onerror = () => {
-    setStatus("API BLOCKED");
-    showMusicFallback();
+    setStatus("YOUTUBE API BLOCKED");
   };
 
-  // Timeout: if API isn't ready after 8 seconds, show fallback
-  setTimeout(() => {
-    if (!ytReady) {
-      setStatus("NOT AVAILABLE");
-      showMusicFallback();
-    }
-  }, 8000);
-
   document.head.appendChild(script);
-}
-
-/* Show a direct YouTube link in the music dock when embed fails */
-function showMusicFallback(){
-  const dock = $("#musicDock");
-  if (!dock || dock.dataset.fallback) return;
-  dock.dataset.fallback = "1";
-
-  const track = TRACKS[requestedTrackKey || "aura"];
-  if (!track || !track.url) return;
-
-  // Replace status with a clickable link
-  const link = document.createElement("a");
-  link.href = track.url;
-  link.target = "_blank";
-  link.rel = "noopener";
-  link.textContent = "▶ OPEN IN YOUTUBE";
-  link.style.cssText = [
-    "color:#9bbcff",
-    "font-size:10px",
-    "letter-spacing:.1em",
-    "text-decoration:none",
-    "font-family:'DM Sans',sans-serif",
-    "font-weight:600",
-    "white-space:nowrap"
-  ].join(";");
-
-  const status = $("#musicStatus");
-  if (status) status.replaceWith(link);
 }
 
 loadYouTubeAPI();
 
 /* =========================================================
-   SCENE MUSIC
+   SOUND UNLOCK
    ========================================================= */
 
-function playSceneTrack(scene, force=false){
-  if (!scene) return;
-
-  const key = scene.dataset.track;
-  const track = TRACKS[key];
-
-  if (!track) return;
-
-  requestedTrackKey = key;
-  updateMusicUI(key);
-
-  if (!experienceStarted) return;
-
-  /* This section intentionally pauses YouTube music. */
-  if (key === "quiet"){
-    currentTrackKey = "quiet";
-    currentVideoId = null;
-
-    if (ytReady && ytPlayer){
-      ytPlayer.pauseVideo();
-      setStatus("QUIET SECTION");
-    }
-    return;
-  }
-
-  if (!ytReady || !ytPlayer){
-    setStatus("PLAYER LOADING…");
-    return;
-  }
-
-  /*
-    Do not restart the same song on every scroll event.
-    A reload only occurs when the active scene's track actually changes.
-  */
-  if (
-    !force &&
-    currentTrackKey === key &&
-    currentVideoId === track.videoId
-  ){
-    return;
-  }
-
-  const serial = ++trackSwitchSerial;
-
-  currentTrackKey = key;
-  currentVideoId = track.videoId;
-  setStatus("SWITCHING…");
-
-  try{
-    ytPlayer.stopVideo();
-  }catch(e){}
-
-  /*
-    THIS is the actual track change.
-    Each section's videoId from TRACKS is loaded directly.
-  */
-  ytPlayer.loadVideoById({
-    videoId: track.videoId,
-    startSeconds: 0
-  });
-
-  ytPlayer.setVolume(track.volume);
-
-  if (firstSoundGestureUsed){
-    try{ ytPlayer.unMute(); }catch(e){}
-  }
-
-  if (!isPaused){
-    setTimeout(()=>{
-      /*
-        Ignore an old delayed callback if the user has already
-        scrolled into another section.
-      */
-      if (
-        serial !== trackSwitchSerial ||
-        currentTrackKey !== key ||
-        isPaused
-      ){
-        return;
-      }
-
-      try{
-        if (firstSoundGestureUsed){
-          ytPlayer.unMute();
-        }
-
-        ytPlayer.setVolume(track.volume);
-        ytPlayer.playVideo();
-        setStatus("PLAYING");
-      }catch(e){
-        setStatus("TAP MUSIC CONTROL");
-      }
-    }, 120);
-  }
-}
-
 function unlockSound(){
-  /*
-    Do not permanently consume the first user gesture before
-    the YouTube player has finished becoming ready.
-  */
+  userInteracted = true;
+
   if (!ytReady || !ytPlayer){
     setStatus("PLAYER LOADING…");
     return false;
   }
 
-  firstSoundGestureUsed = true;
-
   try{
+    soundUnlocked = true;
+    isPaused = false;
+
     ytPlayer.unMute();
 
-    const activeKey =
-      activeScene?.dataset.track &&
-      activeScene.dataset.track !== "quiet"
-        ? activeScene.dataset.track
-        : (
-            currentTrackKey &&
-            currentTrackKey !== "quiet"
-              ? currentTrackKey
-              : "aura"
-          );
+    const track =
+      TRACKS[desiredTrackKey] ||
+      TRACKS.aura;
 
-    const track = TRACKS[activeKey] || TRACKS.aura;
+    ytPlayer.setVolume(track.volume || 42);
 
-    ytPlayer.setVolume(track.volume);
-
-    if (
-      currentTrackKey !== activeKey ||
-      currentVideoId !== track.videoId
-    ){
-      playSceneTrack(activeScene || $("#intro"), true);
-    } else {
+    if (desiredTrackKey !== "quiet"){
       ytPlayer.playVideo();
     }
 
-    isPaused = false;
     musicDock?.classList.remove("paused");
 
     const state = $("#preSoundState");
-    if (state) state.textContent = "SOUND ON";
+
+    if (state){
+      state.textContent = "SOUND ON";
+    }
 
     setStatus("PLAYING");
+
     return true;
   }catch(error){
     setStatus("TAP MUSIC CONTROL");
@@ -517,120 +486,285 @@ function unlockSound(){
   }
 }
 
-/*
-  Browsers block audible autoplay without a user gesture.
-  The FIRST pointer/key interaction anywhere on the landing screen
-  unlocks audio. It does not have to be the Enter button.
-*/
-["pointerdown","touchstart"].forEach(eventName=>{
-  window.addEventListener(eventName,()=>{
-    if (!firstSoundGestureUsed){
-      unlockSound();
-    }
-  },{passive:true});
+["pointerdown", "touchstart"].forEach(eventName => {
+  window.addEventListener(
+    eventName,
+    () => {
+      userInteracted = true;
+
+      if (!soundUnlocked){
+        unlockSound();
+      }
+    },
+    { passive: true }
+  );
 });
 
-window.addEventListener("keydown",()=>{
-  if (!firstSoundGestureUsed){
+window.addEventListener("keydown", () => {
+  userInteracted = true;
+
+  if (!soundUnlocked){
     unlockSound();
   }
 });
 
-function startExperience(){
-  experienceStarted = true;
-  isPaused = false;
+/* =========================================================
+   RELIABLE TRACK SWITCHING
+   ========================================================= */
 
-  unlockSound();
-  musicDock?.classList.add("visible");
+function requestTrack(key, force=false){
+  const track = TRACKS[key];
 
-  const intro = $("#intro");
-  activeScene = intro;
-  intro?.classList.add("is-active");
+  if (!track) return;
 
-  /*
-    Do not restart Aura if the pre-entry version is already playing.
-    Hukum will start as soon as Presence becomes the active section.
-  */
-  if (
-    currentTrackKey !== "aura" ||
-    currentVideoId !== TRACKS.aura.videoId
-  ){
-    playSceneTrack(intro, true);
+  desiredTrackKey = key;
+  updateMusicUI(key);
+
+  if (!experienceStarted){
+    return;
   }
 
-  $("#presence")?.scrollIntoView({
-    behavior: reducedMotion ? "auto" : "smooth"
-  });
+  if (key === "quiet"){
+    currentTrackKey = "quiet";
+    actualVideoId = getPlayerVideoId();
+
+    if (ytReady && ytPlayer){
+      try{
+        ytPlayer.pauseVideo();
+      }catch(error){}
+    }
+
+    setStatus("QUIET SECTION");
+    return;
+  }
+
+  if (!ytReady || !ytPlayer){
+    setStatus("PLAYER LOADING…");
+    return;
+  }
+
+  if (blockedVideoIds.has(track.videoId)){
+    try{
+      ytPlayer.stopVideo();
+    }catch(error){}
+
+    setStatus("TRACK EMBED BLOCKED");
+    return;
+  }
+
+  const realVideoId = getPlayerVideoId();
 
   /*
-    Some browsers merge smooth-scroll events.
-    These resync checks guarantee that Presence becomes Hukum.
+    If the correct song is genuinely loaded, do not restart it.
   */
-  [180, 450, 850, 1300].forEach(delay=>{
-    setTimeout(()=>{
-      const scene = sceneAtViewportCenter();
-      if (scene) activateScene(scene);
+  if (
+    !force &&
+    realVideoId === track.videoId
+  ){
+    actualVideoId = realVideoId;
+    currentTrackKey = key;
+
+    if (!isPaused){
+      try{
+        if (soundUnlocked){
+          ytPlayer.unMute();
+        }
+
+        ytPlayer.setVolume(track.volume);
+        ytPlayer.playVideo();
+      }catch(error){}
+    }
+
+    return;
+  }
+
+  const generation = ++switchGeneration;
+
+  lastLoadAttempt = performance.now();
+  setStatus("SWITCHING…");
+
+  /*
+    Explicitly stop the old section song.
+    This prevents Aura (or any previous song) from continuing underneath.
+  */
+  try{
+    ytPlayer.stopVideo();
+  }catch(error){}
+
+  try{
+    ytPlayer.loadVideoById(track.videoId);
+    ytPlayer.setVolume(track.volume);
+
+    if (soundUnlocked){
+      ytPlayer.unMute();
+    }
+
+    if (!isPaused){
+      ytPlayer.playVideo();
+    }
+  }catch(error){
+    setStatus("TRACK LOAD FAILED");
+    return;
+  }
+
+  /*
+    Verify the real player after YouTube has had time to load.
+  */
+  [250, 650, 1300].forEach(delay => {
+    setTimeout(() => {
+      if (
+        generation !== switchGeneration ||
+        desiredTrackKey !== key ||
+        isPaused
+      ){
+        return;
+      }
+
+      const actual = getPlayerVideoId();
+
+      if (actual === track.videoId){
+        actualVideoId = actual;
+        currentTrackKey = key;
+
+        if (soundUnlocked){
+          try{
+            ytPlayer.unMute();
+          }catch(error){}
+        }
+
+        try{
+          ytPlayer.setVolume(track.volume);
+          ytPlayer.playVideo();
+        }catch(error){}
+
+        setStatus("PLAYING");
+      }else{
+        ensureCorrectTrack(true);
+      }
     }, delay);
   });
 }
 
-enterBtn?.addEventListener("click", startExperience);
+/*
+  Keep this old function name because the voice-note code below
+  already uses it.
+*/
+function playSceneTrack(scene, force=false){
+  if (!scene) return;
 
-musicToggle?.addEventListener("click", ()=>{
-  if (!ytReady || !ytPlayer) return;
+  const key = scene.dataset.track;
 
-  isPaused = !isPaused;
-  musicDock?.classList.toggle("paused", isPaused);
-
-  if (isPaused){
-    ytPlayer.pauseVideo();
-    setStatus("PAUSED");
-  } else {
-    const activeKey = activeScene?.dataset.track;
-
-    if (
-      activeKey &&
-      activeKey !== "quiet" &&
-      (
-        currentTrackKey !== activeKey ||
-        currentVideoId !== TRACKS[activeKey]?.videoId
-      )
-    ){
-      playSceneTrack(activeScene, true);
-    } else if (currentTrackKey === "quiet"){
-      playSceneTrack(activeScene, true);
-    } else {
-      try{ ytPlayer.unMute(); }catch(e){}
-      ytPlayer.playVideo();
-      setStatus("PLAYING");
-    }
+  if (key){
+    requestTrack(key, force);
   }
-});
+}
+
+function ensureCorrectTrack(force=false){
+  if (
+    !experienceStarted ||
+    !ytReady ||
+    !ytPlayer ||
+    isPaused
+  ){
+    return;
+  }
+
+  const scene = getSceneAtViewportCenter();
+
+  if (scene && scene !== activeScene){
+    activateScene(scene);
+    return;
+  }
+
+  const key =
+    activeScene?.dataset.track ||
+    desiredTrackKey;
+
+  if (!key || key === "quiet"){
+    return;
+  }
+
+  const track = TRACKS[key];
+
+  if (
+    !track?.videoId ||
+    blockedVideoIds.has(track.videoId)
+  ){
+    return;
+  }
+
+  desiredTrackKey = key;
+  updateMusicUI(key);
+
+  const actual = getPlayerVideoId();
+
+  if (actual === track.videoId){
+    actualVideoId = actual;
+    currentTrackKey = key;
+    return;
+  }
+
+  /*
+    Avoid spamming the YouTube API faster than necessary.
+  */
+  if (
+    !force &&
+    performance.now() - lastLoadAttempt < 700
+  ){
+    return;
+  }
+
+  requestTrack(key, true);
+}
 
 /* =========================================================
-   ACTIVE-SCENE DETECTION
-   The section crossing the viewport center owns the soundtrack.
+   ACTIVE SECTION = SOUNDTRACK OWNER
    ========================================================= */
 
 const scenes = $$("[data-track]");
+const motionPanels = $$(".motion-panel");
 
-function sceneAtViewportCenter(){
+function getSceneAtViewportCenter(){
+  /*
+    First use the actual DOM element under the center of the screen.
+    This is extremely reliable for long/tall sections.
+  */
+  try{
+    const centerElement = document.elementFromPoint(
+      Math.max(1, innerWidth * .5),
+      Math.max(1, innerHeight * .52)
+    );
+
+    const centerScene =
+      centerElement?.closest?.("[data-track]");
+
+    if (centerScene){
+      return centerScene;
+    }
+  }catch(error){}
+
+  /*
+    Geometry fallback.
+  */
   const focusY = innerHeight * .52;
-
-  let containing = null;
   let nearest = null;
   let nearestDistance = Infinity;
 
   for (const scene of scenes){
-    const r = scene.getBoundingClientRect();
+    const rect = scene.getBoundingClientRect();
 
-    if (r.top <= focusY && r.bottom >= focusY){
-      containing = scene;
-      break;
+    if (
+      rect.top <= focusY &&
+      rect.bottom >= focusY
+    ){
+      return scene;
     }
 
-    const sceneCenter = r.top + r.height / 2;
-    const distance = Math.abs(sceneCenter - focusY);
+    const distance =
+      Math.abs(
+        (rect.top + rect.bottom) / 2 -
+        focusY
+      );
 
     if (distance < nearestDistance){
       nearestDistance = distance;
@@ -638,7 +772,7 @@ function sceneAtViewportCenter(){
     }
   }
 
-  return containing || nearest;
+  return nearest;
 }
 
 function activateScene(scene, forceTrack=false){
@@ -648,139 +782,288 @@ function activateScene(scene, forceTrack=false){
 
   if (changed){
     activeScene?.classList.remove("is-active");
+
     activeScene = scene;
     activeScene.classList.add("is-active");
   }
 
-  if (experienceStarted && (changed || forceTrack)){
-    playSceneTrack(activeScene, forceTrack);
+  const key = activeScene.dataset.track;
+
+  /*
+    Change soundtrack whenever the section changes.
+    Also recover if the actual player video does not match.
+  */
+  if (
+    experienceStarted &&
+    key &&
+    (
+      changed ||
+      forceTrack ||
+      desiredTrackKey !== key ||
+      (
+        key !== "quiet" &&
+        getPlayerVideoId() !== TRACKS[key]?.videoId
+      )
+    )
+  ){
+    requestTrack(key, forceTrack);
   }
 }
-
-/*
-  Center-band observer = primary music switch trigger.
-  This is more reliable than intersection ratio on very tall sections.
-*/
-if ("IntersectionObserver" in window){
-  sceneObserver = new IntersectionObserver(entries=>{
-    if (!experienceStarted) return;
-
-    const visible = entries
-      .filter(entry=>entry.isIntersecting)
-      .sort((a,b)=>{
-        const aCenter =
-          (a.boundingClientRect.top + a.boundingClientRect.bottom) / 2;
-        const bCenter =
-          (b.boundingClientRect.top + b.boundingClientRect.bottom) / 2;
-
-        return (
-          Math.abs(aCenter - innerHeight*.52) -
-          Math.abs(bCenter - innerHeight*.52)
-        );
-      });
-
-    if (visible[0]){
-      activateScene(visible[0].target);
-    }
-  },{
-    root:null,
-    rootMargin:"-48% 0px -48% 0px",
-    threshold:0
-  });
-
-  scenes.forEach(scene=>sceneObserver.observe(scene));
-}
-
-/* Full-screen panels still receive their visual active state. */
-const motionPanels = $$(".motion-panel");
 
 function updateActivePanels(){
   const centerY = innerHeight * .5;
 
   for (const panel of motionPanels){
-    const r = panel.getBoundingClientRect();
-    const active = r.top <= centerY && r.bottom >= centerY;
-    panel.classList.toggle("is-active", active);
+    const rect = panel.getBoundingClientRect();
+
+    panel.classList.toggle(
+      "is-active",
+      rect.top <= centerY &&
+      rect.bottom >= centerY
+    );
   }
 }
+
+/* =========================================================
+   ENTER EXPERIENCE
+   ========================================================= */
+
+function startExperience(){
+  experienceStarted = true;
+  isPaused = false;
+  userInteracted = true;
+
+  unlockSound();
+  musicDock?.classList.add("visible");
+
+  const intro = $("#intro");
+
+  if (intro){
+    activeScene = intro;
+    intro.classList.add("is-active");
+  }
+
+  desiredTrackKey = "aura";
+  updateMusicUI("aura");
+
+  $("#presence")?.scrollIntoView({
+    behavior: reducedMotion
+      ? "auto"
+      : "smooth"
+  });
+
+  /*
+    During smooth scrolling, repeatedly sample the center.
+    Presence switches to Hukum as soon as it owns the center.
+  */
+  [100, 250, 450, 700, 1000, 1400].forEach(delay => {
+    setTimeout(() => {
+      const scene = getSceneAtViewportCenter();
+
+      if (scene){
+        activateScene(scene);
+      }
+
+      ensureCorrectTrack();
+    }, delay);
+  });
+
+  if (!soundtrackWatchdog){
+    soundtrackWatchdog = window.setInterval(() => {
+      if (!experienceStarted) return;
+
+      const scene = getSceneAtViewportCenter();
+
+      if (scene){
+        activateScene(scene);
+      }
+
+      ensureCorrectTrack();
+    }, 500);
+  }
+}
+
+enterBtn?.addEventListener(
+  "click",
+  startExperience
+);
+
+/* =========================================================
+   MUSIC TOGGLE
+   ========================================================= */
+
+musicToggle?.addEventListener("click", () => {
+  if (!ytReady || !ytPlayer){
+    return;
+  }
+
+  isPaused = !isPaused;
+
+  musicDock?.classList.toggle(
+    "paused",
+    isPaused
+  );
+
+  if (isPaused){
+    try{
+      ytPlayer.pauseVideo();
+    }catch(error){}
+
+    setStatus("PAUSED");
+    return;
+  }
+
+  soundUnlocked = true;
+
+  try{
+    ytPlayer.unMute();
+  }catch(error){}
+
+  const scene = getSceneAtViewportCenter();
+
+  if (scene){
+    activateScene(scene, true);
+  }else{
+    ensureCorrectTrack(true);
+  }
+});
 
 /* =========================================================
    ONE RAF SCROLL LOOP
    ========================================================= */
 
-let scrollTicking = false;
-
 function updateScroll(){
   scrollTicking = false;
-  const vh = innerHeight;
 
-  const centeredScene = sceneAtViewportCenter();
-  if (centeredScene && centeredScene !== activeScene){
-    activateScene(centeredScene);
+  const viewportHeight = innerHeight;
+
+  const scene = getSceneAtViewportCenter();
+
+  if (scene){
+    activateScene(scene);
   }
+
   updateActivePanels();
+
+  /*
+    Re-check the REAL YouTube video while scrolling.
+    This is what prevents one song from remaining stuck.
+  */
+  ensureCorrectTrack();
 
   /* Kinetic presence motion */
   const presence = $("#presence");
+
   if (presence){
-    const r = presence.getBoundingClientRect();
-    const p = clamp(
-      (-r.top) / Math.max(1, presence.offsetHeight - vh),
+    const rect =
+      presence.getBoundingClientRect();
+
+    const progress = clamp(
+      (-rect.top) /
+        Math.max(
+          1,
+          presence.offsetHeight -
+            viewportHeight
+        ),
       0,
       1
     );
 
-    $$(".statement span").forEach((word,index)=>{
-      const direction = index % 2 ? 1 : -1;
-      word.style.transform =
-        `translateX(${direction * (p - .5) * 9}vw)`;
-      word.style.opacity = String(.45 + p * .55);
-    });
+    $$(".statement span").forEach(
+      (word, index) => {
+        const direction =
+          index % 2 ? 1 : -1;
+
+        word.style.transform =
+          `translateX(${
+            direction *
+            (progress - .5) *
+            9
+          }vw)`;
+
+        word.style.opacity =
+          String(
+            .45 +
+            progress *
+            .55
+          );
+      }
+    );
   }
 
   /* Aura meters */
-  $$(".meter").forEach(meter=>{
-    const r = meter.getBoundingClientRect();
+  $$(".meter").forEach(meter => {
+    const rect =
+      meter.getBoundingClientRect();
 
-    if (r.top < vh * .82){
-      const value = Number(meter.dataset.value || 0);
-      const bar = $("em",meter);
+    if (
+      rect.top <
+      viewportHeight * .82
+    ){
+      const value =
+        Number(
+          meter.dataset.value ||
+          0
+        );
+
+      const bar = $("em", meter);
 
       if (bar){
-        bar.style.width = `${Math.min(value,100)}%`;
+        bar.style.width =
+          `${Math.min(value,100)}%`;
       }
     }
   });
 
   /* Birthday reveal line */
   const reveal = $("#reveal");
-  if (reveal){
-    const r = reveal.getBoundingClientRect();
-    const line = $(".reveal__line");
 
-    if (line && r.top < vh * .55){
-      line.style.width = "min(320px,62vw)";
+  if (reveal){
+    const rect =
+      reveal.getBoundingClientRect();
+
+    const line =
+      $(".reveal__line");
+
+    if (
+      line &&
+      rect.top <
+        viewportHeight * .55
+    ){
+      line.style.width =
+        "min(320px,62vw)";
     }
   }
 }
 
-addEventListener("scroll",()=>{
-  if (!scrollTicking){
-    requestAnimationFrame(updateScroll);
-    scrollTicking = true;
-  }
-},{passive:true});
+addEventListener(
+  "scroll",
+  () => {
+    if (!scrollTicking){
+      scrollTicking = true;
+      requestAnimationFrame(
+        updateScroll
+      );
+    }
+  },
+  { passive: true }
+);
 
-addEventListener("resize",()=>{
-  requestAnimationFrame(updateScroll);
+addEventListener("resize", () => {
+  requestAnimationFrame(
+    updateScroll
+  );
 });
 
 updateScroll();
 
-/* Intro begins with motion even before Enter is pressed */
-requestAnimationFrame(()=>{
-  $("#intro")?.classList.add("is-active");
+/* Intro motion is active before Enter. */
+requestAnimationFrame(() => {
+  $("#intro")?.classList.add(
+    "is-active"
+  );
 });
+
 
 /* =========================================================
    PRE-ENTRY POINTER PARALLAX
