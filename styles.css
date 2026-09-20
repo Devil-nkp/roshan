@@ -506,40 +506,120 @@ em{font-style:normal;color:var(--blue)}
   color:#a2a8ae;font:700 .48rem "Space Grotesk";letter-spacing:.11em;
 }
 
-/* ---------- MUSIC DOCK ---------- */
-.musicDock{
-  position:fixed;z-index:100;right:14px;bottom:14px;width:320px;
-  border:1px solid var(--line);background:rgba(7,9,12,.94);backdrop-filter:blur(16px);
-  border-radius:18px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.45);
-  transform:translateY(calc(100% + 30px));opacity:0;transition:.35s var(--ease);
+/* ---------- MUSIC PILL ---------- */
+.musicPill{
+  position:fixed;
+  z-index:100;
+  right:14px;
+  bottom:14px;
+  width:min(350px,calc(100vw - 28px));
+  min-height:64px;
+  display:grid;
+  grid-template-columns:44px 1fr auto;
+  gap:11px;
+  align-items:center;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:rgba(7,9,12,.90);
+  backdrop-filter:blur(16px);
+  box-shadow:0 18px 55px rgba(0,0,0,.38);
+  transform:translateY(calc(100% + 30px));
+  opacity:0;
+  transition:.32s var(--ease);
 }
-.musicDock.visible{transform:none;opacity:1}
-.musicDock.minimized .musicDock__player,.musicDock.minimized .musicDock__foot{display:none}
-.musicDock__head{min-height:66px;display:grid;grid-template-columns:42px 1fr 32px;gap:10px;align-items:center;padding:10px 11px}
-.musicDock__toggle,.musicDock__min{border:0;color:white}
-.musicDock__toggle{
-  width:42px;aspect-ratio:1;border-radius:13px;background:var(--blue);
-  display:grid;place-items:center;
+.musicPill.visible{
+  transform:none;
+  opacity:1;
 }
-.musicDock__min{background:transparent;font-size:1.1rem}
-.musicBars{height:18px;display:flex;align-items:center;gap:2px}
-.musicBars i{display:block;width:2px;background:white;height:6px;animation:bars .55s ease-in-out infinite alternate}
+.musicPill.paused .musicBars i{
+  animation:none;
+  height:2px;
+}
+.musicPill__toggle{
+  width:42px;
+  aspect-ratio:1;
+  border:0;
+  border-radius:13px;
+  background:var(--blue);
+  color:white;
+  display:grid;
+  place-items:center;
+}
+.musicBars{
+  height:18px;
+  display:flex;
+  align-items:center;
+  gap:2px;
+}
+.musicBars i{
+  display:block;
+  width:2px;
+  height:6px;
+  background:white;
+  animation:bars .55s ease-in-out infinite alternate;
+}
 .musicBars i:nth-child(2){height:15px;animation-delay:-.22s}
 .musicBars i:nth-child(3){height:11px;animation-delay:-.34s}
 .musicBars i:nth-child(4){height:8px;animation-delay:-.12s}
-.musicDock.paused .musicBars i{animation:none;height:2px}
 @keyframes bars{to{height:16px}}
-.musicDock__info{min-width:0}
-.musicDock__info small{display:block;margin-bottom:3px;color:#69727c;font:700 .47rem "Space Grotesk";letter-spacing:.12em}
-.musicDock__info b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:700 .70rem "Space Grotesk"}
-.musicDock__info span{display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#858f99;font-size:.66rem}
-.musicDock__player{width:100%;min-height:200px;background:#000}
-#yt-player-host,#yt-player-host iframe,#yt-player{display:block;width:100%!important;height:200px!important;min-width:200px!important;min-height:200px!important;border:0}
-.musicDock__foot{
-  min-height:34px;padding:8px 11px;display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid var(--line);
+
+.musicPill__info{min-width:0}
+.musicPill__info small{
+  display:block;
+  margin-bottom:3px;
+  color:#69727c;
+  font:700 .47rem "Space Grotesk";
+  letter-spacing:.12em;
 }
-.musicDock__foot span{color:#68717a;font:700 .47rem "Space Grotesk";letter-spacing:.10em}
-.musicDock__foot a{color:#9ebdff;text-decoration:none;font:700 .49rem "Space Grotesk";letter-spacing:.08em}
+.musicPill__info b{
+  display:block;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  font:700 .70rem "Space Grotesk";
+}
+.musicPill__info span{
+  display:block;
+  margin-top:2px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:#858f99;
+  font-size:.66rem;
+}
+.musicPill__status{
+  color:#8eaef8;
+  font:700 .47rem "Space Grotesk";
+  letter-spacing:.10em;
+  white-space:nowrap;
+}
+
+/*
+  Keep the YouTube iframe rendered at a valid 200x200 size,
+  but outside the visible viewport so it never appears over the website.
+*/
+#youtube-engine{
+  position:fixed;
+  left:-9999px;
+  top:0;
+  width:220px;
+  height:220px;
+  overflow:hidden;
+  pointer-events:none;
+  opacity:.01;
+  z-index:-999;
+}
+#yt-player-host,
+#yt-player-host iframe,
+#yt-player{
+  display:block;
+  width:220px!important;
+  height:220px!important;
+  min-width:200px!important;
+  min-height:200px!important;
+  border:0;
+}
 
 /* reveal helpers */
 .revealItem{opacity:0;transform:translateY(26px);transition:opacity .75s var(--ease),transform .75s var(--ease)}
@@ -601,10 +681,625 @@ em{font-style:normal;color:var(--blue)}
   .ending{padding:70px 18px 110px}
   .ending__copy h2{font-size:14vw}
   .ending__credits{left:18px;right:18px;flex-direction:column}
-  .musicDock{right:8px;bottom:8px;width:min(320px,calc(100vw - 16px))}
+  .musicPill{right:8px;bottom:8px;width:min(350px,calc(100vw - 16px))}
 }
 
 @media(prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation:none!important;transition-duration:.01ms!important}
+}
+
+
+/* =========================================================
+   UNIQUE SCENE MOTION SYSTEM
+   Each scene has a different choreography.
+   Only transform + opacity are used for performance.
+   ========================================================= */
+
+.motion-scene,
+.motion-panel{
+  --scene-progress:0;
+}
+
+/* HERO: slow camera push, name separates */
+#intro .fullscreen-image__media{
+  transform:scale(1.10);
+  transition:transform 1.8s var(--ease);
+  will-change:transform;
+}
+#intro.is-active .fullscreen-image__media{transform:scale(1.02)}
+#intro .intro__center .eyebrow{
+  opacity:0;transform:translateY(22px);
+  transition:opacity .7s .10s var(--ease),transform .7s .10s var(--ease);
+}
+#intro .intro__center h1 span:first-child{
+  opacity:0;transform:translateX(-7vw);
+  transition:opacity .9s .18s var(--ease),transform .9s .18s var(--ease);
+}
+#intro .intro__center h1 .outline{
+  opacity:0;transform:translateX(7vw);
+  transition:opacity .9s .26s var(--ease),transform .9s .26s var(--ease);
+}
+#intro .intro__tag{
+  opacity:0;transform:translateY(18px);
+  transition:opacity .7s .38s var(--ease),transform .7s .38s var(--ease);
+}
+#intro.is-active .intro__center .eyebrow,
+#intro.is-active .intro__center h1 span,
+#intro.is-active .intro__tag{
+  opacity:1;transform:none;
+}
+
+/* PRESENCE: line-by-line directional kinetic motion */
+#presence .statement span:nth-child(1),
+#presence .statement span:nth-child(3){transform:translateX(-7vw)}
+#presence .statement span:nth-child(2),
+#presence .statement span:nth-child(4){transform:translateX(7vw)}
+#presence .statement span{
+  transition:opacity .45s linear;
+}
+#presence .roundSeal{
+  animation:sealFloat 4s ease-in-out infinite;
+}
+@keyframes sealFloat{
+  50%{transform:rotate(12deg) translateY(-10px)}
+}
+
+/* AURA: camera zoom + scanner panel reveal */
+#aura .fullscreen-image__media{
+  transform:scale(1.10) translateX(-1.5%);
+  transition:transform 6s linear;
+  will-change:transform;
+}
+#aura.is-active .fullscreen-image__media{transform:scale(1.02) translateX(0)}
+#aura .aura__headline{
+  opacity:0;transform:translateX(-70px);
+  transition:opacity .8s .08s var(--ease),transform .8s .08s var(--ease);
+}
+#aura .aura__panel{
+  opacity:0;transform:translateX(70px);
+  transition:opacity .8s .20s var(--ease),transform .8s .20s var(--ease);
+}
+#aura.is-active .aura__headline,
+#aura.is-active .aura__panel{opacity:1;transform:none}
+
+/* RECORD INTRO: giant text comes toward camera */
+#record .record__intro h2{
+  opacity:.18;transform:scale(.90);
+  transition:opacity .9s var(--ease),transform .9s var(--ease);
+}
+#record.is-active .record__intro h2{opacity:1;transform:scale(1)}
+
+/* Each full-screen visual record frame gets a different camera move */
+.motion-panel .fullscreen-image__media{
+  will-change:transform;
+  transition:transform 4.8s cubic-bezier(.15,.7,.2,1),filter 1s ease;
+}
+.motion-panel[data-panel-motion="pan-left"] .fullscreen-image__media{
+  transform:scale(1.12) translateX(3.5%);
+}
+.motion-panel[data-panel-motion="pan-right"] .fullscreen-image__media{
+  transform:scale(1.12) translateX(-3.5%);
+}
+.motion-panel[data-panel-motion="zoom-in"] .fullscreen-image__media{
+  transform:scale(1.02);
+}
+.motion-panel[data-panel-motion="zoom-out"] .fullscreen-image__media{
+  transform:scale(1.15);
+}
+.motion-panel[data-panel-motion="tilt-in"] .fullscreen-image__media{
+  transform:scale(1.12) rotate(.7deg);
+}
+.motion-panel[data-panel-motion^="memory-"] .fullscreen-image__media{
+  transform:scale(1.10);
+}
+.motion-panel[data-panel-motion="memory-left"] .fullscreen-image__media{
+  transform:scale(1.12) translateX(2.8%);
+}
+.motion-panel[data-panel-motion="memory-right"] .fullscreen-image__media{
+  transform:scale(1.12) translateX(-2.8%);
+}
+.motion-panel[data-panel-motion="memory-rise"] .fullscreen-image__media{
+  transform:scale(1.10) translateY(2.5%);
+}
+.motion-panel.is-active .fullscreen-image__media{
+  transform:scale(1.02) translate(0,0) rotate(0deg)!important;
+}
+.frame .frame__overlay{
+  opacity:0;transform:translateY(42px);
+  transition:opacity .8s .12s var(--ease),transform .8s .12s var(--ease);
+}
+.frame.is-active .frame__overlay{opacity:1;transform:none}
+.frame__overlay--right{transform:translateY(42px) translateX(25px)}
+.frame.is-active .frame__overlay--right{transform:none}
+
+/* CLASSIFIED: photo pushes in while physical file drops into place */
+#classified .fullscreen-image__media{
+  transform:scale(1.13);
+  filter:grayscale(.2) contrast(1.05);
+  transition:transform 5s linear,filter 1.2s ease;
+}
+#classified.is-active .fullscreen-image__media{
+  transform:scale(1.03);
+  filter:grayscale(.65) contrast(1.08);
+}
+#classified .caseFile{
+  opacity:0;
+  transform:translateY(80px) rotate(-2.2deg) scale(.96);
+  transition:opacity .85s .12s var(--ease),transform .85s .12s var(--ease);
+}
+#classified.is-active .caseFile{
+  opacity:1;
+  transform:translateY(0) rotate(-.25deg) scale(1);
+}
+
+/* EMOTIONAL SWITCH: lines reveal sequentially */
+#behind .behind__inner h2,
+#behind .behind__inner p{
+  opacity:.18;
+  transform:translateY(25px);
+  transition:opacity .6s var(--ease),transform .6s var(--ease);
+}
+#behind.is-active .behind__inner p:first-child{opacity:.7;transform:none}
+#behind.is-active .behind__inner h2:nth-of-type(1){opacity:1;transform:none;transition-delay:.12s}
+#behind.is-active .behind__inner h2:nth-of-type(2){opacity:1;transform:none;transition-delay:.24s}
+#behind.is-active .behind__inner h2:nth-of-type(3){opacity:1;transform:none;transition-delay:.36s}
+#behind.is-active .behind__inner p:last-child{opacity:1;transform:none;transition-delay:.48s}
+
+/* MEMORIES: alternate caption direction + camera pans */
+.memory figcaption{
+  opacity:0;
+  transform:translateY(34px);
+  transition:opacity .75s .12s var(--ease),transform .75s .12s var(--ease);
+}
+.memory:nth-of-type(even) figcaption{
+  transform:translateX(45px);
+}
+.memory:nth-of-type(odd) figcaption{
+  transform:translateX(-45px);
+}
+.memory.is-active figcaption{opacity:1;transform:none}
+
+/* NO CONTEXT: heading punches in while tickers continue */
+#context>h2{
+  opacity:.15;transform:scale(.86) rotate(-1deg);
+  transition:opacity .75s var(--ease),transform .75s var(--ease);
+}
+#context.is-active>h2{opacity:1;transform:scale(1) rotate(0)}
+#context .ticker--a{transform:rotate(-1.7deg) translateX(-3vw)}
+#context .ticker--b{transform:rotate(1.7deg) translateX(3vw)}
+#context.is-active .ticker--a{animation:tickerBandA .75s var(--ease) forwards}
+#context.is-active .ticker--b{animation:tickerBandB .75s var(--ease) forwards}
+@keyframes tickerBandA{to{transform:rotate(-1.7deg) translateX(0)}}
+@keyframes tickerBandB{to{transform:rotate(1.7deg) translateX(0)}}
+
+/* TRUTH: two sides enter against each other */
+#truth article:first-child{
+  opacity:0;transform:translateX(-75px);
+  transition:opacity .8s var(--ease),transform .8s var(--ease);
+}
+#truth .truth__right{
+  opacity:0;transform:translateX(75px);
+  transition:opacity .8s .10s var(--ease),transform .8s .10s var(--ease);
+}
+#truth .truth__divider{
+  opacity:0;transform:scaleY(.35);
+  transform-origin:center;
+  transition:opacity .6s .18s var(--ease),transform .8s .18s var(--ease);
+}
+#truth.is-active article,
+#truth.is-active .truth__divider{opacity:1;transform:none}
+#truth .truth__final{
+  opacity:0;transform:translateY(20px);
+  transition:opacity .6s .38s var(--ease),transform .6s .38s var(--ease);
+}
+#truth.is-active .truth__final{opacity:1;transform:none}
+
+/* MESSAGE: audio ring breathes, card rises */
+#message .messageCard{
+  opacity:0;transform:translateY(55px) scale(.98);
+  transition:opacity .8s var(--ease),transform .8s var(--ease);
+}
+#message.is-active .messageCard{opacity:1;transform:none}
+#message.is-active .voiceButton{
+  animation:voicePulse 2.2s ease-in-out infinite;
+}
+@keyframes voicePulse{
+  50%{transform:scale(1.06);box-shadow:0 0 0 16px rgba(47,104,255,.04)}
+}
+
+/* LETTER: paper rises and settles */
+#letter .letterSheet{
+  opacity:0;
+  transform:translateY(110px) rotate(1.7deg) scale(.97);
+  transition:opacity .95s var(--ease),transform .95s var(--ease);
+}
+#letter.is-active .letterSheet{
+  opacity:1;transform:translateY(0) rotate(.2deg) scale(1);
+}
+
+/* VAULT: background pushes in; rings activate only here */
+#vault .fullscreen-image__media{
+  transform:scale(1.12);
+  transition:transform 5s linear;
+}
+#vault.is-active .fullscreen-image__media{transform:scale(1.03)}
+#vault .vaultMark__ring{transform:rotate(0)}
+#vault.is-active .vaultMark__ring:first-child{animation:vaultSpin 10s linear infinite}
+#vault.is-active .vaultMark__ring--two{animation:vaultSpin 7s linear infinite reverse}
+@keyframes vaultSpin{to{transform:rotate(360deg)}}
+#vault .vault__copy{
+  opacity:0;transform:translateX(55px);
+  transition:opacity .8s .12s var(--ease),transform .8s .12s var(--ease);
+}
+#vault.is-active .vault__copy{opacity:1;transform:none}
+
+/* BIRTHDAY REVEAL: camera impact + title detonates */
+#reveal .fullscreen-image__media{
+  transform:scale(1.18);
+  transition:transform 5.5s cubic-bezier(.12,.65,.18,1);
+}
+#reveal.is-active .fullscreen-image__media{transform:scale(1.02)}
+#reveal .reveal__content{
+  opacity:0;transform:scale(.78);
+  transition:opacity .7s .12s var(--ease),transform .95s .12s cubic-bezier(.1,.85,.2,1);
+}
+#reveal.is-active .reveal__content{opacity:1;transform:scale(1)}
+#reveal .reveal__footer{
+  opacity:0;transform:translateY(18px);
+  transition:opacity .6s .58s var(--ease),transform .6s .58s var(--ease);
+}
+#reveal.is-active .reveal__footer{opacity:1;transform:none}
+
+/* NEXT: lines rise one by one */
+#next .next__inner .eyebrow,
+#next .next__inner h2,
+#next .next__final{
+  opacity:0;transform:translateY(45px);
+  transition:opacity .65s var(--ease),transform .65s var(--ease);
+}
+#next.is-active .next__inner .eyebrow{opacity:1;transform:none}
+#next.is-active .next__inner h2{opacity:1;transform:none;transition-delay:.12s}
+#next.is-active .next__final{opacity:1;transform:none;transition-delay:.30s}
+
+/* ENDING: final image slowly zooms out, copy floats up */
+#ending .fullscreen-image__media{
+  transform:scale(1.14);
+  transition:transform 8s linear;
+}
+#ending.is-active .fullscreen-image__media{transform:scale(1.03)}
+#ending .ending__copy{
+  opacity:0;transform:translateY(55px);
+  transition:opacity .85s .14s var(--ease),transform .85s .14s var(--ease);
+}
+#ending.is-active .ending__copy{opacity:1;transform:none}
+#ending .ending__credits{
+  opacity:0;transition:opacity .6s .55s ease;
+}
+#ending.is-active .ending__credits{opacity:1}
+
+/* On small screens reduce camera translation while preserving scene identity */
+@media(max-width:620px){
+  .motion-panel[data-panel-motion="pan-left"] .fullscreen-image__media,
+  .motion-panel[data-panel-motion="memory-left"] .fullscreen-image__media{
+    transform:scale(1.10) translateX(1.6%);
+  }
+  .motion-panel[data-panel-motion="pan-right"] .fullscreen-image__media,
+  .motion-panel[data-panel-motion="memory-right"] .fullscreen-image__media{
+    transform:scale(1.10) translateX(-1.6%);
+  }
+  #truth article:first-child{transform:translateX(-35px)}
+  #truth .truth__right{transform:translateX(35px)}
+}
+
+/* Reduced motion remains fully usable */
+@media(prefers-reduced-motion:reduce){
+  .motion-scene *,
+  .motion-panel *{
+    animation:none!important;
+    transform:none!important;
+    opacity:1!important;
+  }
+}
+
+
+/* =========================================================
+   PRE-ENTRY CINEMATIC HERO
+   Full person always visible + movement before Enter
+   ========================================================= */
+
+#intro{
+  min-height:100svh;
+  position:relative;
+  overflow:hidden;
+  display:block;
+  padding:0;
+  background:#030406;
+}
+
+/* Same photo fills the screen softly behind the full person. */
+#intro .intro__bg{
+  position:absolute;
+  inset:-4%;
+  width:108%;
+  height:108%;
+  max-width:none;
+  object-fit:cover;
+  object-position:center;
+  filter:blur(24px) saturate(.75) brightness(.42) contrast(1.08);
+  transform:scale(1.10);
+  opacity:.70;
+  animation:introBgMove 12s ease-in-out infinite alternate;
+  will-change:transform;
+}
+@keyframes introBgMove{
+  0%{transform:scale(1.10) translate3d(-1.2%,0,0)}
+  100%{transform:scale(1.16) translate3d(1.2%,-1%,0)}
+}
+
+#intro .intro__bgShade{
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 50% 38%,rgba(47,104,255,.09),transparent 34%),
+    linear-gradient(90deg,rgba(3,4,6,.80),rgba(3,4,6,.12) 43%,rgba(3,4,6,.18) 58%,rgba(3,4,6,.78)),
+    linear-gradient(to top,rgba(3,4,6,.92),rgba(3,4,6,.10) 58%,rgba(3,4,6,.62));
+}
+
+/* Full photo layer: contain keeps head-to-toe visible. */
+#intro .intro__fullPerson{
+  position:absolute;
+  z-index:4;
+  inset:0;
+  margin:0;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  pointer-events:none;
+}
+#intro .intro__fullPerson img{
+  width:100%;
+  height:100%;
+  max-width:none;
+  object-fit:contain;
+  object-position:center bottom;
+  filter:contrast(1.045) saturate(.94);
+  transform:scale(.97) translateY(1.5%);
+  transform-origin:center bottom;
+  animation:introPersonFloat 6.5s ease-in-out infinite;
+  will-change:transform;
+}
+@keyframes introPersonFloat{
+  0%,100%{transform:scale(.97) translate3d(0,1.5%,0)}
+  50%{transform:scale(.985) translate3d(0,.2%,0)}
+}
+#intro .intro__personEdge{
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 50% 45%,transparent 36%,rgba(47,104,255,.04) 57%,transparent 72%);
+  mix-blend-mode:screen;
+}
+
+/* Huge name layers move independently around the person. */
+#intro .intro__word{
+  position:absolute;
+  left:50%;
+  z-index:3;
+  white-space:nowrap;
+  pointer-events:none;
+  user-select:none;
+  font:400 clamp(7.5rem,20vw,20rem)/.76 "Anton",sans-serif;
+  letter-spacing:-.045em;
+  transform:translateX(-50%);
+}
+#intro .intro__word--back{
+  top:7%;
+  color:rgba(255,255,255,.12);
+  animation:introWordBack 8s ease-in-out infinite alternate;
+}
+#intro .intro__word--front{
+  bottom:11%;
+  z-index:5;
+  color:transparent;
+  -webkit-text-stroke:1px rgba(255,255,255,.68);
+  text-shadow:0 0 34px rgba(47,104,255,.07);
+  animation:introWordFront 7s ease-in-out infinite alternate;
+}
+@keyframes introWordBack{
+  to{transform:translateX(-52%) translateY(-12px)}
+}
+@keyframes introWordFront{
+  to{transform:translateX(-48%) translateY(10px)}
+}
+
+/* Moving cobalt light rays */
+#intro .intro__light{
+  position:absolute;
+  z-index:2;
+  width:34vw;
+  height:140vh;
+  top:-20vh;
+  filter:blur(45px);
+  opacity:.13;
+  background:linear-gradient(to bottom,transparent,rgba(47,104,255,.85),transparent);
+  transform:rotate(18deg);
+  pointer-events:none;
+}
+#intro .intro__light--one{
+  left:11%;
+  animation:introRayOne 8s ease-in-out infinite alternate;
+}
+#intro .intro__light--two{
+  right:8%;
+  transform:rotate(-15deg);
+  opacity:.08;
+  animation:introRayTwo 10s ease-in-out infinite alternate;
+}
+@keyframes introRayOne{
+  to{transform:translateX(11vw) rotate(23deg);opacity:.19}
+}
+@keyframes introRayTwo{
+  to{transform:translateX(-9vw) rotate(-20deg);opacity:.14}
+}
+
+/* Thin scanning glow crosses the image occasionally. */
+#intro .intro__scanGlow{
+  position:absolute;
+  z-index:6;
+  left:-25%;
+  top:0;
+  width:18%;
+  height:100%;
+  background:linear-gradient(90deg,transparent,rgba(151,185,255,.11),transparent);
+  transform:skewX(-16deg);
+  animation:introScanGlow 7s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes introScanGlow{
+  0%,18%{left:-25%;opacity:0}
+  28%{opacity:1}
+  58%{left:110%;opacity:.65}
+  65%,100%{left:110%;opacity:0}
+}
+
+#intro .intro__micro{
+  z-index:9;
+}
+
+#intro .intro__center{
+  position:absolute;
+  z-index:8;
+  left:var(--pad);
+  bottom:28%;
+  width:min(470px,70vw);
+}
+#intro .intro__center .eyebrow{
+  margin-bottom:10px;
+}
+#intro .intro__tag{
+  margin:0;
+  font:400 clamp(2rem,4.6vw,4.5rem) "Anton";
+  letter-spacing:.03em;
+  color:white;
+}
+
+/* Opening audio status is part of hero design, not a popup. */
+#intro .intro__preSound{
+  position:absolute;
+  z-index:10;
+  top:72px;
+  right:var(--pad);
+  min-width:250px;
+  max-width:330px;
+  display:grid;
+  grid-template-columns:34px 1fr;
+  column-gap:10px;
+  row-gap:2px;
+  align-items:center;
+  padding:10px 12px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(5,7,10,.46);
+  backdrop-filter:blur(12px);
+  border-radius:15px;
+}
+#intro .intro__preSound small{
+  display:block;
+  color:#717b85;
+  font:700 .44rem "Space Grotesk";
+  letter-spacing:.12em;
+}
+#intro .intro__preSound b{
+  font:700 .68rem "Space Grotesk";
+}
+#intro .intro__preSound em{
+  grid-column:1/-1;
+  margin-top:3px;
+  color:#94b5ff;
+  font:700 .45rem "Space Grotesk";
+  letter-spacing:.10em;
+}
+.preSoundBars{
+  height:24px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:2px;
+  border-radius:9px;
+  background:var(--blue);
+}
+.preSoundBars i{
+  display:block;
+  width:2px;
+  height:7px;
+  background:white;
+  animation:preSoundWave .6s ease-in-out infinite alternate;
+}
+.preSoundBars i:nth-child(2){height:16px;animation-delay:-.2s}
+.preSoundBars i:nth-child(3){height:11px;animation-delay:-.34s}
+.preSoundBars i:nth-child(4){height:6px;animation-delay:-.12s}
+@keyframes preSoundWave{to{height:19px}}
+
+#intro .intro__bottom{
+  z-index:11;
+}
+
+/* Mouse parallax variables are set by JS. */
+#intro{
+  --mx:0px;
+  --my:0px;
+}
+#intro .intro__fullPerson{
+  translate:calc(var(--mx) * .24) calc(var(--my) * .20);
+}
+#intro .intro__word--back{
+  margin-left:calc(var(--mx) * -.15);
+}
+#intro .intro__word--front{
+  margin-left:calc(var(--mx) * .12);
+}
+#intro .intro__light--one{
+  margin-left:calc(var(--mx) * .18);
+}
+#intro .intro__light--two{
+  margin-right:calc(var(--mx) * -.16);
+}
+
+@media(max-width:620px){
+  #intro .intro__word{
+    font-size:29vw;
+  }
+  #intro .intro__word--back{top:12%}
+  #intro .intro__word--front{bottom:23%}
+  #intro .intro__fullPerson img{
+    object-position:center bottom;
+    transform:scale(.94) translateY(1%);
+  }
+  #intro .intro__center{
+    left:18px;
+    bottom:30%;
+    width:72vw;
+  }
+  #intro .intro__tag{font-size:10vw}
+  #intro .intro__preSound{
+    top:58px;
+    right:10px;
+    min-width:0;
+    width:min(235px,64vw);
+  }
+  #intro .intro__bottom{
+    left:18px;
+    right:18px;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  #intro .intro__bg,
+  #intro .intro__fullPerson img,
+  #intro .intro__word,
+  #intro .intro__light,
+  #intro .intro__scanGlow,
+  .preSoundBars i{
+    animation:none!important;
+  }
 }
