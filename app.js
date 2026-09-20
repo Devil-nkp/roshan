@@ -101,6 +101,9 @@ let requestedTrackKey = "aura";
 let apiLoaded = false;
 let preEntryMutedPlayback = false;
 let firstSoundGestureUsed = false;
+let currentVideoId = TRACKS.aura.videoId;
+let trackSwitchSerial = 0;
+let sceneObserver = null;
 
 const musicDock = $("#musicDock");
 const musicTitle = $("#musicTitle");
@@ -147,14 +150,24 @@ function createIframe(){
   iframe.setAttribute("allow", "autoplay; encrypted-media; picture-in-picture");
   iframe.referrerPolicy = "strict-origin-when-cross-origin";
 
-  const pageOrigin =
+  // Always normalise 127.0.0.1 → localhost so YouTube origin validation passes
+  function normaliseOrigin(raw) {
+    try {
+      const u = new URL(raw);
+      if (u.hostname === "127.0.0.1") u.hostname = "localhost";
+      return u.origin;
+    } catch { return raw; }
+  }
+
+  const pageOrigin = normaliseOrigin(
     location.origin && location.origin !== "null"
       ? location.origin
-      : "http://localhost:8080";
+      : "http://localhost:8080"
+  );
 
   const pageUrl =
     location.href && !location.href.startsWith("file:")
-      ? location.href
+      ? location.href.replace("127.0.0.1", "localhost")
       : `${pageOrigin}/`;
 
   const params = new URLSearchParams({
@@ -163,8 +176,6 @@ function createIframe(){
     controls:"0",
     autoplay:"1",
     mute:"1",
-    loop:"1",
-    playlist:TRACKS.aura.videoId,
     rel:"0",
     fs:"0",
     origin:pageOrigin,
@@ -194,6 +205,7 @@ function attachYouTube(){
         ytPlayer.mute();
         ytPlayer.setVolume(TRACKS.aura.volume);
         currentTrackKey = "aura";
+        currentVideoId = TRACKS.aura.videoId;
         activeScene = $("#intro");
         updateMusicUI("aura");
 
@@ -209,7 +221,12 @@ function attachYouTube(){
 
         if (experienceStarted){
           unlockSound();
-          playSceneTrack(activeScene || $("#intro"), true);
+          const scene =
+            sceneAtViewportCenter() ||
+            activeScene ||
+            $("#intro");
+
+          activateScene(scene, true);
         }
       },
 
@@ -232,9 +249,8 @@ function attachYouTube(){
         }
 
         /*
-          LOOP BEHAVIOR:
-          When the current section's song ends, restart that same song.
-          It continues looping until the visitor enters a different section.
+          LOOP CURRENT SCENE TRACK ONLY.
+          The iframe no longer has a fixed Aura playlist.
         */
         if (
           event.data === YT.PlayerState.ENDED &&
@@ -243,10 +259,21 @@ function attachYouTube(){
           currentTrackKey &&
           currentTrackKey !== "quiet"
         ){
-          const activeKey = activeScene?.dataset.track;
+          const track = TRACKS[currentTrackKey];
 
-          if (activeKey === currentTrackKey){
-            ytPlayer.seekTo(0, true);
+          if (track?.videoId){
+            currentVideoId = track.videoId;
+
+            ytPlayer.loadVideoById({
+              videoId: track.videoId,
+              startSeconds: 0
+            });
+
+            if (firstSoundGestureUsed){
+              try{ ytPlayer.unMute(); }catch(e){}
+            }
+
+            ytPlayer.setVolume(track.volume);
             ytPlayer.playVideo();
             setStatus("LOOPING");
           }
@@ -258,10 +285,13 @@ function attachYouTube(){
 
         if (code === 153){
           setStatus("REFERRER BLOCKED");
+          showMusicFallback();
         } else if (code === 101 || code === 150){
           setStatus("EMBED BLOCKED");
+          showMusicFallback();
         } else {
-          setStatus(`YOUTUBE ${code}`);
+          setStatus(`YT ERR ${code}`);
+          showMusicFallback();
         }
       }
     }
@@ -285,7 +315,51 @@ function loadYouTubeAPI(){
   script.src = "https://www.youtube.com/iframe_api";
   script.async = true;
   script.dataset.youtubeApi = "true";
+
+  // If the API script fails to load (network block, ad blocker), show fallback
+  script.onerror = () => {
+    setStatus("API BLOCKED");
+    showMusicFallback();
+  };
+
+  // Timeout: if API isn't ready after 8 seconds, show fallback
+  setTimeout(() => {
+    if (!ytReady) {
+      setStatus("NOT AVAILABLE");
+      showMusicFallback();
+    }
+  }, 8000);
+
   document.head.appendChild(script);
+}
+
+/* Show a direct YouTube link in the music dock when embed fails */
+function showMusicFallback(){
+  const dock = $("#musicDock");
+  if (!dock || dock.dataset.fallback) return;
+  dock.dataset.fallback = "1";
+
+  const track = TRACKS[requestedTrackKey || "aura"];
+  if (!track || !track.url) return;
+
+  // Replace status with a clickable link
+  const link = document.createElement("a");
+  link.href = track.url;
+  link.target = "_blank";
+  link.rel = "noopener";
+  link.textContent = "▶ OPEN IN YOUTUBE";
+  link.style.cssText = [
+    "color:#9bbcff",
+    "font-size:10px",
+    "letter-spacing:.1em",
+    "text-decoration:none",
+    "font-family:'DM Sans',sans-serif",
+    "font-weight:600",
+    "white-space:nowrap"
+  ].join(";");
+
+  const status = $("#musicStatus");
+  if (status) status.replaceWith(link);
 }
 
 loadYouTubeAPI();
@@ -307,8 +381,10 @@ function playSceneTrack(scene, force=false){
 
   if (!experienceStarted) return;
 
+  /* This section intentionally pauses YouTube music. */
   if (key === "quiet"){
     currentTrackKey = "quiet";
+    currentVideoId = null;
 
     if (ytReady && ytPlayer){
       ytPlayer.pauseVideo();
@@ -323,43 +399,110 @@ function playSceneTrack(scene, force=false){
   }
 
   /*
-    Don't reload the same track just because scroll events fire repeatedly.
-    This prevents the song from restarting every few pixels.
+    Do not restart the same song on every scroll event.
+    A reload only occurs when the active scene's track actually changes.
   */
-  if (currentTrackKey === key && !force){
+  if (
+    !force &&
+    currentTrackKey === key &&
+    currentVideoId === track.videoId
+  ){
     return;
   }
 
-  currentTrackKey = key;
+  const serial = ++trackSwitchSerial;
 
+  currentTrackKey = key;
+  currentVideoId = track.videoId;
+  setStatus("SWITCHING…");
+
+  try{
+    ytPlayer.stopVideo();
+  }catch(e){}
+
+  /*
+    THIS is the actual track change.
+    Each section's videoId from TRACKS is loaded directly.
+  */
   ytPlayer.loadVideoById({
-    videoId:track.videoId,
-    startSeconds:0
+    videoId: track.videoId,
+    startSeconds: 0
   });
 
   ytPlayer.setVolume(track.volume);
 
-  if (!isPaused){
-    ytPlayer.playVideo();
+  if (firstSoundGestureUsed){
+    try{ ytPlayer.unMute(); }catch(e){}
   }
 
-  setStatus("PLAYING");
+  if (!isPaused){
+    setTimeout(()=>{
+      /*
+        Ignore an old delayed callback if the user has already
+        scrolled into another section.
+      */
+      if (
+        serial !== trackSwitchSerial ||
+        currentTrackKey !== key ||
+        isPaused
+      ){
+        return;
+      }
+
+      try{
+        if (firstSoundGestureUsed){
+          ytPlayer.unMute();
+        }
+
+        ytPlayer.setVolume(track.volume);
+        ytPlayer.playVideo();
+        setStatus("PLAYING");
+      }catch(e){
+        setStatus("TAP MUSIC CONTROL");
+      }
+    }, 120);
+  }
 }
 
-
 function unlockSound(){
-  if (firstSoundGestureUsed) return;
-  firstSoundGestureUsed = true;
-
+  /*
+    Do not permanently consume the first user gesture before
+    the YouTube player has finished becoming ready.
+  */
   if (!ytReady || !ytPlayer){
     setStatus("PLAYER LOADING…");
-    return;
+    return false;
   }
+
+  firstSoundGestureUsed = true;
 
   try{
     ytPlayer.unMute();
-    ytPlayer.setVolume(TRACKS[currentTrackKey || "aura"]?.volume || 42);
-    ytPlayer.playVideo();
+
+    const activeKey =
+      activeScene?.dataset.track &&
+      activeScene.dataset.track !== "quiet"
+        ? activeScene.dataset.track
+        : (
+            currentTrackKey &&
+            currentTrackKey !== "quiet"
+              ? currentTrackKey
+              : "aura"
+          );
+
+    const track = TRACKS[activeKey] || TRACKS.aura;
+
+    ytPlayer.setVolume(track.volume);
+
+    if (
+      currentTrackKey !== activeKey ||
+      currentVideoId !== track.videoId
+    ){
+      playSceneTrack(activeScene || $("#intro"), true);
+    } else {
+      ytPlayer.playVideo();
+    }
+
     isPaused = false;
     musicDock?.classList.remove("paused");
 
@@ -367,8 +510,10 @@ function unlockSound(){
     if (state) state.textContent = "SOUND ON";
 
     setStatus("PLAYING");
+    return true;
   }catch(error){
     setStatus("TAP MUSIC CONTROL");
+    return false;
   }
 }
 
@@ -379,13 +524,17 @@ function unlockSound(){
 */
 ["pointerdown","touchstart"].forEach(eventName=>{
   window.addEventListener(eventName,()=>{
-    if (!firstSoundGestureUsed) unlockSound();
-  },{once:true,passive:true});
+    if (!firstSoundGestureUsed){
+      unlockSound();
+    }
+  },{passive:true});
 });
 
 window.addEventListener("keydown",()=>{
-  if (!firstSoundGestureUsed) unlockSound();
-},{once:true});
+  if (!firstSoundGestureUsed){
+    unlockSound();
+  }
+});
 
 function startExperience(){
   experienceStarted = true;
@@ -398,13 +547,30 @@ function startExperience(){
   activeScene = intro;
   intro?.classList.add("is-active");
 
-  // Do not restart Aura 10/10 if it is already playing.
-  if (currentTrackKey !== "aura"){
+  /*
+    Do not restart Aura if the pre-entry version is already playing.
+    Hukum will start as soon as Presence becomes the active section.
+  */
+  if (
+    currentTrackKey !== "aura" ||
+    currentVideoId !== TRACKS.aura.videoId
+  ){
     playSceneTrack(intro, true);
   }
 
   $("#presence")?.scrollIntoView({
-    behavior:reducedMotion ? "auto" : "smooth"
+    behavior: reducedMotion ? "auto" : "smooth"
+  });
+
+  /*
+    Some browsers merge smooth-scroll events.
+    These resync checks guarantee that Presence becomes Hukum.
+  */
+  [180, 450, 850, 1300].forEach(delay=>{
+    setTimeout(()=>{
+      const scene = sceneAtViewportCenter();
+      if (scene) activateScene(scene);
+    }, delay);
   });
 }
 
@@ -420,9 +586,21 @@ musicToggle?.addEventListener("click", ()=>{
     ytPlayer.pauseVideo();
     setStatus("PAUSED");
   } else {
-    if (currentTrackKey === "quiet"){
+    const activeKey = activeScene?.dataset.track;
+
+    if (
+      activeKey &&
+      activeKey !== "quiet" &&
+      (
+        currentTrackKey !== activeKey ||
+        currentVideoId !== TRACKS[activeKey]?.videoId
+      )
+    ){
+      playSceneTrack(activeScene, true);
+    } else if (currentTrackKey === "quiet"){
       playSceneTrack(activeScene, true);
     } else {
+      try{ ytPlayer.unMute(); }catch(e){}
       ytPlayer.playVideo();
       setStatus("PLAYING");
     }
@@ -430,50 +608,90 @@ musicToggle?.addEventListener("click", ()=>{
 });
 
 /* =========================================================
-   STABLE ACTIVE-SCENE DETECTION
-   Viewport-center method prevents observer flicker/restarts.
+   ACTIVE-SCENE DETECTION
+   The section crossing the viewport center owns the soundtrack.
    ========================================================= */
 
 const scenes = $$("[data-track]");
 
 function sceneAtViewportCenter(){
-  const centerY = innerHeight * .5;
+  const focusY = innerHeight * .52;
 
-  let best = null;
-  let bestDistance = Infinity;
+  let containing = null;
+  let nearest = null;
+  let nearestDistance = Infinity;
 
   for (const scene of scenes){
     const r = scene.getBoundingClientRect();
 
-    if (r.top <= centerY && r.bottom >= centerY){
-      return scene;
+    if (r.top <= focusY && r.bottom >= focusY){
+      containing = scene;
+      break;
     }
 
-    const sceneCenter = (r.top + r.bottom) / 2;
-    const distance = Math.abs(sceneCenter - centerY);
+    const sceneCenter = r.top + r.height / 2;
+    const distance = Math.abs(sceneCenter - focusY);
 
-    if (distance < bestDistance){
-      bestDistance = distance;
-      best = scene;
+    if (distance < nearestDistance){
+      nearestDistance = distance;
+      nearest = scene;
     }
   }
 
-  return best;
+  return containing || nearest;
 }
 
-function activateScene(scene){
-  if (!scene || scene === activeScene) return;
+function activateScene(scene, forceTrack=false){
+  if (!scene) return;
 
-  activeScene?.classList.remove("is-active");
-  activeScene = scene;
-  activeScene.classList.add("is-active");
+  const changed = scene !== activeScene;
 
-  if (experienceStarted){
-    playSceneTrack(activeScene);
+  if (changed){
+    activeScene?.classList.remove("is-active");
+    activeScene = scene;
+    activeScene.classList.add("is-active");
+  }
+
+  if (experienceStarted && (changed || forceTrack)){
+    playSceneTrack(activeScene, forceTrack);
   }
 }
 
-/* Full-screen panels also receive active state individually */
+/*
+  Center-band observer = primary music switch trigger.
+  This is more reliable than intersection ratio on very tall sections.
+*/
+if ("IntersectionObserver" in window){
+  sceneObserver = new IntersectionObserver(entries=>{
+    if (!experienceStarted) return;
+
+    const visible = entries
+      .filter(entry=>entry.isIntersecting)
+      .sort((a,b)=>{
+        const aCenter =
+          (a.boundingClientRect.top + a.boundingClientRect.bottom) / 2;
+        const bCenter =
+          (b.boundingClientRect.top + b.boundingClientRect.bottom) / 2;
+
+        return (
+          Math.abs(aCenter - innerHeight*.52) -
+          Math.abs(bCenter - innerHeight*.52)
+        );
+      });
+
+    if (visible[0]){
+      activateScene(visible[0].target);
+    }
+  },{
+    root:null,
+    rootMargin:"-48% 0px -48% 0px",
+    threshold:0
+  });
+
+  scenes.forEach(scene=>sceneObserver.observe(scene));
+}
+
+/* Full-screen panels still receive their visual active state. */
 const motionPanels = $$(".motion-panel");
 
 function updateActivePanels(){
@@ -496,7 +714,10 @@ function updateScroll(){
   scrollTicking = false;
   const vh = innerHeight;
 
-  activateScene(sceneAtViewportCenter());
+  const centeredScene = sceneAtViewportCenter();
+  if (centeredScene && centeredScene !== activeScene){
+    activateScene(centeredScene);
+  }
   updateActivePanels();
 
   /* Kinetic presence motion */
