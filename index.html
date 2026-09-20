@@ -18,28 +18,46 @@
   <div class="film-noise" aria-hidden="true"></div>
 
   <!-- ================= START ================= -->
-  <section class="intro fullscreen-image" id="intro" data-track="aura">
-    <img class="fullscreen-image__media" src="./assets/hero.svg" alt="Parvesh Roshan hero image">
-    <div class="fullscreen-image__shade intro__shade"></div>
+  <section class="intro fullscreen-image motion-scene" id="intro" data-track="aura" data-motion="hero">
+    <img class="intro__bg" src="./assets/hero.svg" alt="" aria-hidden="true">
+    <div class="intro__bgShade" aria-hidden="true"></div>
+
+    <div class="intro__light intro__light--one" aria-hidden="true"></div>
+    <div class="intro__light intro__light--two" aria-hidden="true"></div>
+    <div class="intro__scanGlow" aria-hidden="true"></div>
 
     <div class="intro__micro">
       <span>PR / 001</span>
       <span>BIRTHDAY EXPERIENCE</span>
     </div>
 
+    <div class="intro__word intro__word--back">PARVESH</div>
+
+    <figure class="intro__fullPerson" aria-label="Parvesh Roshan">
+      <img src="./assets/hero.svg" alt="Parvesh Roshan full photo">
+      <div class="intro__personEdge" aria-hidden="true"></div>
+    </figure>
+
+    <div class="intro__word intro__word--front">ROSHAN</div>
+
     <div class="intro__center">
       <p class="eyebrow">ONE NAME. ONE PRESENCE.</p>
-      <h1>
-        <span>PARVESH</span>
-        <span class="outline">ROSHAN</span>
-      </h1>
       <p class="intro__tag">ONE OF ONE.</p>
+    </div>
+
+    <div class="intro__preSound" id="preSoundNotice">
+      <span class="preSoundBars"><i></i><i></i><i></i><i></i></span>
+      <div>
+        <small>OPENING TRACK</small>
+        <b>AURA 10/10</b>
+      </div>
+      <em id="preSoundState">TAP ANYWHERE FOR SOUND</em>
     </div>
 
     <div class="intro__bottom">
       <div>
         <p>NO INTRODUCTION REQUIRED.</p>
-        <small>Music starts after you enter.</small>
+        <small>The experience has already started.</small>
       </div>
 
       <button class="enter" id="enterBtn">
@@ -52,7 +70,7 @@
   <main id="experience">
 
     <!-- ================= PRESENCE ================= -->
-    <section class="scene scene--presence" id="presence" data-track="hukum">
+    <section class="scene scene--presence motion-scene" id="presence" data-track="hukum" data-motion="kinetic">
       <span class="scene__index">01 / PRESENCE</span>
 
       <div class="presenceLock">
@@ -73,7 +91,7 @@
     </section>
 
     <!-- ================= AURA FULLSCREEN ================= -->
-    <section class="scene aura fullscreen-image" id="aura" data-track="rolex">
+    <section class="scene aura fullscreen-image motion-scene" id="aura" data-track="rolex" data-motion="scanner">
       <img class="fullscreen-image__media" src="./assets/solo-01.svg" alt="Parvesh Roshan portrait">
       <div class="fullscreen-image__shade aura__shade"></div>
       <span class="scene__index scene__index--light">02 / AURA</span>
@@ -104,7 +122,7 @@
     </section>
 
     <!-- ================= FULLSCREEN VISUAL RECORD ================= -->
-    <section class="record" id="record" data-track="ordinary">
+    <section class="record motion-scene" id="record" data-track="ordinary" data-motion="reel">
       <div class="record__intro">
         <span class="scene__index">03 / VISUAL RECORD</span>
         <p class="eyebrow">THE CAMERA KNOWS</p>
@@ -112,7 +130,7 @@
         <p>Every image now owns the entire screen.</p>
       </div>
 
-      <article class="frame fullscreen-image">
+      <article class="frame fullscreen-image motion-panel" data-panel-motion="pan-left">
         <img class="fullscreen-image__media" src="./assets/solo-01.svg" alt="Parvesh portrait 1">
         <div class="fullscreen-image__shade"></div>
         <div class="frame__overlay">
@@ -122,7 +140,7 @@
         </div>
       </article>
 
-      <article class="frame fullscreen-image">
+      <article class="frame fullscreen-image motion-panel" data-panel-motion="zoom-in">
         <img class="fullscreen-image__media" src="./assets/solo-02.svg" alt="Parvesh portrait 2">
         <div class="fullscreen-image__shade"></div>
         <div class="frame__overlay frame__overlay--right">
@@ -132,7 +150,7 @@
         </div>
       </article>
 
-      <article class="frame fullscreen-image">
+      <article class="frame fullscreen-image motion-panel" data-panel-motion="pan-right">
         <img class="fullscreen-image__media" src="./assets/solo-03.svg" alt="Parvesh portrait 3">
         <div class="fullscreen-image__shade"></div>
         <div class="frame__overlay">
@@ -142,7 +160,7 @@
         </div>
       </article>
 
-      <article class="frame fullscreen-image">
+      <article class="frame fullscreen-image motion-panel" data-panel-motion="tilt-in">
         <img class="fullscreen-image__media" src="./assets/solo-04.svg" alt="Parvesh portrait 4">
         <div class="fullscreen-image__shade"></div>
         <div class="frame__overlay frame__overlay--right">
@@ -152,7 +170,7 @@
         </div>
       </article>
 
-      <article class="frame fullscreen-image">
+      <article class="frame fullscreen-image motion-panel" data-panel-motion="zoom-out">
         <img class="fullscreen-image__media" src="./assets/solo-05.svg" alt="Parvesh portrait 5">
         <div class="fullscreen-image__shade"></div>
         <div class="frame__overlay">
@@ -164,7 +182,7 @@
     </section>
 
     <!-- ================= CLASSIFIED FULLSCREEN BACKDROP ================= -->
-    <section class="scene classified fullscreen-image" id="classified" data-track="lokiverse">
+    <section class="scene classified fullscreen-image motion-scene" id="classified" data-track="lokiverse" data-motion="dossier">
       <img class="fullscreen-image__media" src="./assets/solo-03.svg" alt="Parvesh classified image">
       <div class="fullscreen-image__shade classified__shade"></div>
       <span class="scene__index scene__index--light">04 / PR-001</span>
@@ -195,7 +213,7 @@
     </section>
 
     <!-- ================= EMOTIONAL SWITCH ================= -->
-    <section class="scene behind" id="behind" data-track="life">
+    <section class="scene behind motion-scene" id="behind" data-track="life" data-motion="switch">
       <span class="scene__index">05 / THE PERSON BEHIND IT</span>
 
       <div class="behind__inner">
@@ -209,44 +227,44 @@
     </section>
 
     <!-- ================= FULLSCREEN MEMORIES ================= -->
-    <section class="us" id="us" data-track="mustafa">
+    <section class="us motion-scene" id="us" data-track="mustafa" data-motion="memories">
       <div class="us__intro">
         <span class="scene__index">06 / US</span>
         <p class="eyebrow">PRIVATE MEMORY ARCHIVE</p>
         <h2>NOT JUST A FRIEND.<br><em>MY PERSON.</em></h2>
       </div>
 
-      <figure class="memory fullscreen-image">
+      <figure class="memory fullscreen-image motion-panel" data-panel-motion="memory-left">
         <img class="fullscreen-image__media" src="./assets/memory-01.svg" alt="Friendship memory 1" loading="lazy" decoding="async">
         <div class="fullscreen-image__shade"></div>
         <figcaption><b>001</b><span>WHERE IT STARTED</span></figcaption>
       </figure>
 
-      <figure class="memory fullscreen-image">
+      <figure class="memory fullscreen-image motion-panel" data-panel-motion="memory-right">
         <img class="fullscreen-image__media" src="./assets/memory-02.svg" alt="Friendship memory 2" loading="lazy" decoding="async">
         <div class="fullscreen-image__shade"></div>
         <figcaption><b>002</b><span>NO PLAN. GREAT DAY.</span></figcaption>
       </figure>
 
-      <figure class="memory fullscreen-image">
+      <figure class="memory fullscreen-image motion-panel" data-panel-motion="memory-rise">
         <img class="fullscreen-image__media" src="./assets/memory-03.svg" alt="Friendship memory 3" loading="lazy" decoding="async">
         <div class="fullscreen-image__shade"></div>
         <figcaption><b>003</b><span>PEAK STUPIDITY</span></figcaption>
       </figure>
 
-      <figure class="memory fullscreen-image">
+      <figure class="memory fullscreen-image motion-panel" data-panel-motion="memory-left">
         <img class="fullscreen-image__media" src="./assets/memory-04.svg" alt="Friendship memory 4" loading="lazy" decoding="async">
         <div class="fullscreen-image__shade"></div>
         <figcaption><b>004</b><span>STILL ONE OF THE BEST</span></figcaption>
       </figure>
 
-      <figure class="memory fullscreen-image">
+      <figure class="memory fullscreen-image motion-panel" data-panel-motion="memory-right">
         <img class="fullscreen-image__media" src="./assets/memory-05.svg" alt="Friendship memory 5" loading="lazy" decoding="async">
         <div class="fullscreen-image__shade"></div>
         <figcaption><b>005</b><span>NO CONTEXT NEEDED</span></figcaption>
       </figure>
 
-      <figure class="memory fullscreen-image">
+      <figure class="memory fullscreen-image motion-panel" data-panel-motion="memory-rise">
         <img class="fullscreen-image__media" src="./assets/memory-06.svg" alt="Friendship memory 6" loading="lazy" decoding="async">
         <div class="fullscreen-image__shade"></div>
         <figcaption><b>006</b><span>OUR KIND OF NORMAL</span></figcaption>
@@ -254,7 +272,7 @@
     </section>
 
     <!-- ================= NO CONTEXT ================= -->
-    <section class="scene context" id="context" data-track="godmode">
+    <section class="scene context motion-scene" id="context" data-track="godmode" data-motion="ticker">
       <span class="scene__index">07 / NO CONTEXT</span>
 
       <p class="eyebrow">THINGS ONLY WE UNDERSTAND</p>
@@ -283,7 +301,7 @@
     </section>
 
     <!-- ================= TWO SIDES ================= -->
-    <section class="scene truth" id="truth" data-track="ordinary">
+    <section class="scene truth motion-scene" id="truth" data-track="ordinary" data-motion="split">
       <span class="scene__index">08 / TWO SIDES</span>
 
       <div class="truth__grid">
@@ -310,7 +328,7 @@
     </section>
 
     <!-- ================= MESSAGE ================= -->
-    <section class="scene message" id="message" data-track="quiet">
+    <section class="scene message motion-scene" id="message" data-track="quiet" data-motion="message">
       <span class="scene__index">09 / MESSAGE FROM ME</span>
 
       <div class="messageCard">
@@ -334,7 +352,7 @@
     </section>
 
     <!-- ================= LETTER ================= -->
-    <section class="scene letter" id="letter" data-track="life">
+    <section class="scene letter motion-scene" id="letter" data-track="life" data-motion="letter">
       <span class="scene__index">10 / TO MY BROTHER</span>
 
       <div class="letterSheet">
@@ -362,7 +380,7 @@
     </section>
 
     <!-- ================= VAULT ================= -->
-    <section class="scene vault fullscreen-image" id="vault" data-track="revenge">
+    <section class="scene vault fullscreen-image motion-scene" id="vault" data-track="revenge" data-motion="vault">
       <img class="fullscreen-image__media" src="./assets/memory-05.svg" alt="Private vault background">
       <div class="fullscreen-image__shade vault__shade"></div>
       <span class="scene__index scene__index--light">11 / THE VAULT</span>
@@ -415,7 +433,7 @@
     </section>
 
     <!-- ================= BIRTHDAY REVEAL ================= -->
-    <section class="scene reveal fullscreen-image" id="reveal" data-track="hukum">
+    <section class="scene reveal fullscreen-image motion-scene" id="reveal" data-track="hukum" data-motion="reveal">
       <img class="fullscreen-image__media" src="./assets/hero.svg" alt="Parvesh Roshan final birthday portrait">
       <div class="fullscreen-image__shade reveal__shade"></div>
       <span class="scene__index scene__index--light">12 / HIS DAY</span>
@@ -443,7 +461,7 @@
     </section>
 
     <!-- ================= NEXT ================= -->
-    <section class="scene next" id="next" data-track="aura">
+    <section class="scene next motion-scene" id="next" data-track="aura" data-motion="next">
       <span class="scene__index">13 / NEXT CHAPTER</span>
 
       <div class="next__inner">
@@ -454,7 +472,7 @@
     </section>
 
     <!-- ================= ENDING FULLSCREEN ================= -->
-    <footer class="ending fullscreen-image" id="ending" data-track="mustafa">
+    <footer class="ending fullscreen-image motion-scene" id="ending" data-track="mustafa" data-motion="ending">
       <img class="fullscreen-image__media" src="./assets/memory-01.svg" alt="Final friendship photo">
       <div class="fullscreen-image__shade ending__shade"></div>
 
@@ -473,31 +491,31 @@
 
   </main>
 
-  <!-- ================= MUSIC DOCK ================= -->
-  <aside class="musicDock" id="musicDock" aria-label="Background music player">
-    <div class="musicDock__head">
-      <button class="musicDock__toggle" id="musicToggle" aria-label="Pause or resume music">
-        <span class="musicBars"><i></i><i></i><i></i><i></i></span>
-      </button>
+  <!-- ================= MUSIC PILL ================= -->
+  <aside class="musicPill" id="musicDock" aria-label="Background music controls">
+    <button class="musicPill__toggle" id="musicToggle" aria-label="Pause or resume music">
+      <span class="musicBars"><i></i><i></i><i></i><i></i></span>
+    </button>
 
-      <div class="musicDock__info">
-        <small>NOW PLAYING</small>
-        <b id="musicTitle">Aura 10/10</b>
-        <span id="musicArtist">Hiphop Tamizha & Thamizh Aadhavan</span>
-      </div>
-
-      <button class="musicDock__min" id="musicMin" aria-label="Minimize player">—</button>
+    <div class="musicPill__info">
+      <small>NOW PLAYING</small>
+      <b id="musicTitle">Aura 10/10</b>
+      <span id="musicArtist">Hiphop Tamizha & Thamizh Aadhavan</span>
     </div>
 
-    <div class="musicDock__player">
-      <div id="yt-player-host" aria-label="YouTube background music player"></div>
-    </div>
-
-    <div class="musicDock__foot">
-      <span id="musicStatus">CLICK ENTER TO START</span>
-      <a id="youtubeLink" href="https://www.youtube.com/watch?v=XSTTBVFiObg" target="_blank" rel="noopener">OPEN YOUTUBE ↗</a>
-    </div>
+    <span class="musicPill__status" id="musicStatus">READY</span>
   </aside>
+
+  <!-- Off-screen YouTube playback engine: no visible video popup -->
+  <div id="youtube-engine" aria-hidden="true">
+    <div id="yt-player-host"></div>
+  </div>
+
+  <a id="youtubeLink"
+     href="https://www.youtube.com/watch?v=XSTTBVFiObg"
+     target="_blank"
+     rel="noopener"
+     hidden>Open current song on YouTube</a>
 
   <script src="./app.js"></script>
 </body>
